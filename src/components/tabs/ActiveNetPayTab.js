@@ -188,8 +188,8 @@ export default function ActiveNetPayTab({ data, wtCols, n1, n2, wageTypeLabel = 
                   </TableCell>
                 );
               })}
-              <TableCell sx={{ ...hStyle, bgcolor: '#92400E' }} align="right" title={`Sum of (WT × Mult) minus ${wageTypeLabel}`}>{n1} Recon{'\n'}(Calc - {wageTypeLabel})</TableCell>
-              <TableCell sx={{ ...hStyle, bgcolor: '#92400E' }} align="right" title={`Sum of (WT × Mult) minus ${wageTypeLabel}`}>{n2} Recon{'\n'}(Calc - {wageTypeLabel})</TableCell>
+              <TableCell sx={{ ...hStyle, bgcolor: '#92400E' }} align="right" title={`${wageTypeLabel} minus Sum(WT × Mult)`}>{n1} Recon{'\n'}({wageTypeLabel} - Calc)</TableCell>
+              <TableCell sx={{ ...hStyle, bgcolor: '#92400E' }} align="right" title={`${wageTypeLabel} minus Sum(WT × Mult)`}>{n2} Recon{'\n'}({wageTypeLabel} - Calc)</TableCell>
               <TableCell sx={{ ...hStyle, bgcolor: '#92400E' }} align="right" title={`Does WT diff explain ${wageTypeLabel} diff?`}>Var Recon{'\n'}Diff</TableCell>
               <TableCell sx={{ ...hStyle, minWidth: 340 }}>WT Bifurcation{'\n'}(Current Period)</TableCell>
               <TableCell sx={hStyle} align="center">Status</TableCell>

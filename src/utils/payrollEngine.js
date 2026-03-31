@@ -258,8 +258,9 @@ function calcNetForWT(targetWT, p1, p2, all1, all2, threshold, df, wtCols, multi
     }
 
     // Reconciliation: calculated gross vs target WT
-    const p1ReconDiff = hasFilter ? p1gross - p1net : 0;
-    const p2ReconDiff = hasFilter ? p2gross - p2net : 0;
+    // Recon = Target WT - Sum(filter WT × Multiplier)
+    const p1ReconDiff = hasFilter ? p1net - p1gross : 0;
+    const p2ReconDiff = hasFilter ? p2net - p2gross : 0;
 
     const v = p1net - p2net;
     const vp = p2net ? (v / p2net) * 100 : (p1net !== 0 ? 100 : 0);
@@ -280,7 +281,8 @@ function calcNetForWT(targetWT, p1, p2, all1, all2, threshold, df, wtCols, multi
     }
 
     // Variance reconciliation: does sum of recon WT diffs explain the target variance?
-    const varReconDiff = hasFilter ? (p1gross - p2gross) - v : 0;
+    // Var Recon: does WT change explain the target variance? 0 = fully explained
+    const varReconDiff = hasFilter ? v - (p1gross - p2gross) : 0;
 
     // Build structured wage type breakdown: { name, wtCode, p1amt, p2amt, diff, compType }
     const wtBreakdown = [];
@@ -507,8 +509,8 @@ export function exportToExcel(nd, zd, dd, rmd, add, n1, n2, wtCols, nd101, zd101
     };
     wtCols.earn.forEach((wt) => (row[`[E] ${wc[wt] ? wc[wt] + ' : ' : ''}${wt}`] = r.wtDiffs[wt] || 0));
     wtCols.ded.forEach((wt) => (row[`[D] ${wc[wt] ? wc[wt] + ' : ' : ''}${wt}`] = r.wtDiffs[wt] || 0));
-    row[`${n1} Recon (Calc-/559)`] = r.p1GrossToNetDiff;
-    row[`${n2} Recon (Calc-/559)`] = r.p2GrossToNetDiff;
+    row[`${n1} Recon (/559-Calc)`] = r.p1GrossToNetDiff;
+    row[`${n2} Recon (/559-Calc)`] = r.p2GrossToNetDiff;
     row['Var Recon Diff'] = r.varReconDiff;
     row['Status'] = r.st;
 
@@ -673,8 +675,8 @@ export function exportToExcel(nd, zd, dd, rmd, add, n1, n2, wtCols, nd101, zd101
       };
       wtCols.earn.forEach((wt) => (row[`[E] ${wc[wt] ? wc[wt] + ' : ' : ''}${wt}`] = r.wtDiffs[wt] || 0));
       wtCols.ded.forEach((wt) => (row[`[D] ${wc[wt] ? wc[wt] + ' : ' : ''}${wt}`] = r.wtDiffs[wt] || 0));
-      row[`${n1} Recon (Calc-/101)`] = r.p1GrossToNetDiff;
-      row[`${n2} Recon (Calc-/101)`] = r.p2GrossToNetDiff;
+      row[`${n1} Recon (/101-Calc)`] = r.p1GrossToNetDiff;
+      row[`${n2} Recon (/101-Calc)`] = r.p2GrossToNetDiff;
       row['Var Recon Diff'] = r.varReconDiff;
       row['Status'] = r.st;
       row['Comment'] = r.st === 'Discrepancy'

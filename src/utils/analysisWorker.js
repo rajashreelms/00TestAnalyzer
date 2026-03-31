@@ -102,8 +102,8 @@ function calcNetForWT(targetWT, p1, p2, all1, all2, threshold, df, wtCols, multi
       });
     }
 
-    const p1ReconDiff = hasFilter ? p1gross - p1net : 0;
-    const p2ReconDiff = hasFilter ? p2gross - p2net : 0;
+    const p1ReconDiff = hasFilter ? p1net - p1gross : 0;
+    const p2ReconDiff = hasFilter ? p2net - p2gross : 0;
 
     const v = p1net - p2net;
     const vp = p2net ? (v / p2net) * 100 : (p1net !== 0 ? 100 : 0);
@@ -122,7 +122,7 @@ function calcNetForWT(targetWT, p1, p2, all1, all2, threshold, df, wtCols, multi
       });
     }
 
-    const varReconDiff = hasFilter ? (p1gross - p2gross) - v : 0;
+    const varReconDiff = hasFilter ? v - (p1gross - p2gross) : 0;
 
     const wtBreakdown = [];
     let chg = 0;
