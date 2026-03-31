@@ -58,7 +58,7 @@ function WTBreakdownCell({ breakdown, netPay, changes, wtLabel = '/559', wtName 
                 cursor: 'help',
               }}
             >
-              {w.name}
+              {w.wtCode ? `/${w.wtCode} ` : ''}{w.name}
             </Typography>
           </Tooltip>
           <Typography variant="caption" fontWeight={700} sx={{ whiteSpace: 'nowrap' }}>
@@ -90,7 +90,7 @@ function WTBreakdownCell({ breakdown, netPay, changes, wtLabel = '/559', wtName 
   );
 }
 
-export default function ActiveNetPayTab({ data, wtCols, n1, n2, wageTypeLabel = '/559', wageTypeName = 'Transfer to bank' }) {
+export default function ActiveNetPayTab({ data, wtCols, n1, n2, wageTypeLabel = '/559', wageTypeName = 'Transfer to bank', wtCodeMap = {} }) {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('');
   const [discOnly, setDiscOnly] = useState(false);
@@ -171,13 +171,13 @@ export default function ActiveNetPayTab({ data, wtCols, n1, n2, wageTypeLabel = 
               <TableCell sx={hStyle} align="right">{wageTypeLabel}{'\n'}Variance</TableCell>
               <TableCell sx={hStyle} align="right">Var %</TableCell>
               {wtCols.earn.map((wt) => (
-                <TableCell key={wt} sx={{ ...hStyle, bgcolor: '#059669' }} align="right" title={wt}>
-                  {wt.length > 16 ? wt.substring(0, 14) + '...' : wt}
+                <TableCell key={wt} sx={{ ...hStyle, bgcolor: '#059669' }} align="right" title={`${wtCodeMap[wt] ? '/' + wtCodeMap[wt] + ' - ' : ''}${wt}`}>
+                  {wtCodeMap[wt] ? `/${wtCodeMap[wt]} ` : ''}{wt.length > 16 ? wt.substring(0, 14) + '...' : wt}
                 </TableCell>
               ))}
               {wtCols.ded.map((wt) => (
-                <TableCell key={wt} sx={{ ...hStyle, bgcolor: '#DC2626' }} align="right" title={wt}>
-                  {wt.length > 16 ? wt.substring(0, 14) + '...' : wt}
+                <TableCell key={wt} sx={{ ...hStyle, bgcolor: '#DC2626' }} align="right" title={`${wtCodeMap[wt] ? '/' + wtCodeMap[wt] + ' - ' : ''}${wt}`}>
+                  {wtCodeMap[wt] ? `/${wtCodeMap[wt]} ` : ''}{wt.length > 16 ? wt.substring(0, 14) + '...' : wt}
                 </TableCell>
               ))}
               <TableCell sx={{ ...hStyle, bgcolor: '#92400E' }} align="right" title={`Sum of (WT × Mult) minus ${wageTypeLabel}`}>{n1} Recon{'\n'}(Calc - {wageTypeLabel})</TableCell>

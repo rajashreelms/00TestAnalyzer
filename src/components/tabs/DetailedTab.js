@@ -141,6 +141,7 @@ export default function DetailedTab({ data, n1, n2 }) {
               <TableCell sx={{ ...hStyle, width: 40 }} />
               <TableCell sx={hStyle}>ID</TableCell>
               <TableCell sx={hStyle}>Employee Name</TableCell>
+              <TableCell sx={hStyle}>WT</TableCell>
               <TableCell sx={hStyle}>Wage Type</TableCell>
               <TableCell sx={hStyle}>Component</TableCell>
               <TableCell sx={hStyle} align="right">Multiplier</TableCell>
@@ -196,6 +197,7 @@ export default function DetailedTab({ data, n1, n2 }) {
                   <TableCell>
                     <Typography variant="body2" fontWeight={700}>{s?.nm}</Typography>
                   </TableCell>
+                  <TableCell />
                   <TableCell>
                     <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
                       <Chip label={`${group.details.length} wage types`} size="small" variant="outlined" color="primary" />
@@ -237,7 +239,7 @@ export default function DetailedTab({ data, n1, n2 }) {
 
                 // Detail rows (collapsible)
                 <TableRow key={`collapse-${id}`} sx={{ p: 0 }}>
-                  <TableCell colSpan={11} sx={{ p: 0, borderBottom: isOpen ? '2px solid #e0e0e0' : 'none' }}>
+                  <TableCell colSpan={12} sx={{ p: 0, borderBottom: isOpen ? '2px solid #e0e0e0' : 'none' }}>
                     <Collapse in={isOpen} timeout="auto" unmountOnExit>
                       <Table size="small">
                         <TableBody>
@@ -253,6 +255,9 @@ export default function DetailedTab({ data, n1, n2 }) {
                               <TableCell sx={{ width: 40 }} />
                               <TableCell sx={{ pl: 4, color: 'text.secondary', width: 100 }}>{r.id}</TableCell>
                               <TableCell sx={{ color: 'text.secondary' }}>{r.nm}</TableCell>
+                              <TableCell>
+                                <Typography variant="body2" fontWeight={600} color="text.secondary">{r.wtCode || ''}</Typography>
+                              </TableCell>
                               <TableCell>
                                 <Typography variant="body2" fontWeight={600}>{r.wt}</Typography>
                               </TableCell>

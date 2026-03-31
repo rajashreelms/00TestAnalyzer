@@ -5,17 +5,19 @@ import BlockIcon from '@mui/icons-material/Block';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import RemoveCircleIcon from '@mui/icons-material/RemoveCircle';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
+import GridViewIcon from '@mui/icons-material/GridView';
 import ActiveNetPayTab from './tabs/ActiveNetPayTab';
 import ZeroPayTab from './tabs/ZeroPayTab';
 import DetailedTab from './tabs/DetailedTab';
 import RemovedWTTab from './tabs/RemovedWTTab';
 import AddedWTTab from './tabs/AddedWTTab';
+import PivotViewTab from './tabs/PivotViewTab';
 
 function TabPanel({ children, value, index }) {
   return value === index ? <Box sx={{ p: 3 }}>{children}</Box> : null;
 }
 
-export default function TabContainer({ results, wtCols, n1, n2, wageTypeLabel = '/559', wageTypeName = 'Transfer to bank' }) {
+export default function TabContainer({ results, wtCols, n1, n2, d1, wageTypeLabel = '/559', wageTypeName = 'Transfer to bank' }) {
   const [tab, setTab] = useState(0);
 
   const activeData = wageTypeLabel === '/101' ? results.active101 : results.active;
@@ -133,10 +135,15 @@ export default function TabContainer({ results, wtCols, n1, n2, wageTypeLabel = 
             label="New WT"
             sx={{ color: results.added.length ? 'success.main' : undefined }}
           />
+          <Tab
+            icon={<GridViewIcon fontSize="small" />}
+            iconPosition="start"
+            label={`Pivot View (${n1})`}
+          />
         </Tabs>
 
         <TabPanel value={tab} index={0}>
-          <ActiveNetPayTab data={activeData} wtCols={wtCols} n1={n1} n2={n2} wageTypeLabel={wageTypeLabel} wageTypeName={wageTypeName} />
+          <ActiveNetPayTab data={activeData} wtCols={wtCols} n1={n1} n2={n2} wageTypeLabel={wageTypeLabel} wageTypeName={wageTypeName} wtCodeMap={results.wtCodeMap || {}} />
         </TabPanel>
         <TabPanel value={tab} index={1}>
           <ZeroPayTab data={zeroData} n1={n1} n2={n2} wageTypeLabel={wageTypeLabel} wageTypeName={wageTypeName} />
@@ -149,6 +156,9 @@ export default function TabContainer({ results, wtCols, n1, n2, wageTypeLabel = 
         </TabPanel>
         <TabPanel value={tab} index={4}>
           <AddedWTTab data={results.added} n1={n1} n2={n2} />
+        </TabPanel>
+        <TabPanel value={tab} index={5}>
+          <PivotViewTab data={d1} n1={n1} />
         </TabPanel>
       </Paper>
     </Box>

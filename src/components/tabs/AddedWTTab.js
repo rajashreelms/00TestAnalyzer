@@ -84,6 +84,7 @@ export default function AddedWTTab({ data, n1, n2 }) {
             <TableRow>
               <TableCell sx={hStyle}>Employee ID</TableCell>
               <TableCell sx={hStyle}>Employee Name</TableCell>
+              <TableCell sx={hStyle}>WT</TableCell>
               <TableCell sx={hStyle}>Wage Type</TableCell>
               <TableCell sx={hStyle}>Component Type</TableCell>
               <TableCell sx={hStyle} align="right">Current Amount</TableCell>
@@ -97,6 +98,7 @@ export default function AddedWTTab({ data, n1, n2 }) {
               <TableRow key={`${r.id}-${r.wt}-${i}`} sx={{ bgcolor: '#ECFDF5', '&:hover': { bgcolor: '#D1FAE5' }, transition: 'background 0.15s ease' }}>
                 <TableCell><Typography variant="body2" fontWeight={700}>{r.id}</Typography></TableCell>
                 <TableCell>{r.nm}</TableCell>
+                <TableCell><Typography variant="body2" fontWeight={600} color="text.secondary">{r.wtCode || ''}</Typography></TableCell>
                 <TableCell><Typography variant="body2" fontWeight={600}>{r.wt}</Typography></TableCell>
                 <TableCell>
                   <Chip label={r.compType} size="small" variant="outlined"
