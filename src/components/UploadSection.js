@@ -8,6 +8,14 @@ import { useRef } from 'react';
 
 function FileUploadCard({ title, subtitle, nameValue, onNameChange, onFileSelect, status, icon, extra }) {
   const fileRef = useRef();
+  const handleFile = (file) => {
+    if (!file) return;
+    if (file.size > 50 * 1024 * 1024) {
+      onFileSelect(null);
+      return;
+    }
+    onFileSelect(file);
+  };
   return (
     <Paper
       variant="outlined"
@@ -59,7 +67,7 @@ function FileUploadCard({ title, subtitle, nameValue, onNameChange, onFileSelect
         type="file"
         accept=".xlsx,.xls,.csv,.txt,.tsv"
         hidden
-        onChange={(e) => onFileSelect(e.target.files[0])}
+        onChange={(e) => handleFile(e.target.files[0])}
       />
       {status?.type === 'loading' && <LinearProgress sx={{ mt: 1.5, borderRadius: 1 }} />}
       {status?.type === 'success' && (

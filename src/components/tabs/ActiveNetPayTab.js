@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Chip, Typography, Box, Paper, Alert, Tooltip,
+  Chip, Typography, Box, Paper, Alert, Tooltip, TablePagination,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -94,6 +94,10 @@ export default function ActiveNetPayTab({ data, wtCols, n1, n2, wageTypeLabel = 
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('');
   const [discOnly, setDiscOnly] = useState(false);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(100);
+
+  useEffect(() => { setPage(0); }, [data, search, sort, discOnly]);
 
   const filtered = useMemo(() => {
     let result = [...data];
@@ -118,7 +122,8 @@ export default function ActiveNetPayTab({ data, wtCols, n1, n2, wageTypeLabel = 
   }, [data, search, sort, discOnly]);
 
   const discCount = filtered.filter((r) => r.st === 'Discrepancy').length;
-  const reset = () => { setSearch(''); setSort(''); setDiscOnly(false); };
+  const paginatedData = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const reset = () => { setSearch(''); setSort(''); setDiscOnly(false); setPage(0); };
 
   const varColor = (val) => val > 0 ? 'success.main' : val < 0 ? 'error.main' : 'success.main';
   const reconColor = (val) => Math.abs(val) < 1 ? 'success.main' : 'error.main';
@@ -183,7 +188,7 @@ export default function ActiveNetPayTab({ data, wtCols, n1, n2, wageTypeLabel = 
             </TableRow>
           </TableHead>
           <TableBody>
-            {filtered.map((r) => (
+            {paginatedData.map((r) => (
               <TableRow
                 key={r.id}
                 sx={{ bgcolor: r.st === 'Discrepancy' ? 'warning.50' : undefined, '&:hover': { bgcolor: 'action.hover' } }}
@@ -244,6 +249,15 @@ export default function ActiveNetPayTab({ data, wtCols, n1, n2, wageTypeLabel = 
           </TableBody>
         </Table>
       </TableContainer>
+      <TablePagination
+        component="div"
+        count={filtered.length}
+        page={page}
+        onPageChange={(_, p) => setPage(p)}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+        rowsPerPageOptions={[50, 100, 250, 500]}
+      />
     </Box>
   );
 }

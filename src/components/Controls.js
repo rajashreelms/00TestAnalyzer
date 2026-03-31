@@ -1,10 +1,10 @@
-import { Paper, Button, TextField, Box, Divider } from '@mui/material';
+import { Paper, Button, TextField, Box, Divider, CircularProgress } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 
-export default function Controls({ threshold, setThreshold, onAnalyze, onExport, canAnalyze, hasResults }) {
+export default function Controls({ threshold, setThreshold, onAnalyze, onExport, canAnalyze, hasResults, exportLoading }) {
   return (
     <Paper
       elevation={0}
@@ -51,11 +51,11 @@ export default function Controls({ threshold, setThreshold, onAnalyze, onExport,
       <Button
         variant="outlined"
         color="success"
-        startIcon={<FileDownloadIcon />}
+        startIcon={exportLoading ? <CircularProgress size={18} color="inherit" /> : <FileDownloadIcon />}
         onClick={onExport}
-        disabled={!hasResults}
+        disabled={!hasResults || exportLoading}
       >
-        Export Excel
+        {exportLoading ? 'Exporting...' : 'Export Excel'}
       </Button>
 
       <Box sx={{ flexGrow: 1 }} />

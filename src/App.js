@@ -9,7 +9,8 @@ import Controls from './components/Controls';
 import SummaryCards from './components/SummaryCards';
 import TabContainer from './components/TabContainer';
 import Footer from './components/Footer';
-import { parseExcel, parseFilterFile, analyze, exportToExcel } from './utils/payrollEngine';
+import { parseExcel, parseFilterFile, exportToExcel } from './utils/payrollEngine';
+import { runAnalysisInWorker } from './utils/analysisWorker';
 
 const theme = createTheme({
   palette: {
@@ -57,6 +58,7 @@ export default function App() {
   const [results, setResults] = useState(null);
   const [analysisMode, setAnalysisMode] = useState('559');
   const [loading, setLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
 
   const [status1, setStatus1] = useState(null);
@@ -125,29 +127,34 @@ export default function App() {
   const handleAnalyze = useCallback(() => {
     if (!d1 || !d2) { showSnackbar('Please upload both period files first', 'warning'); return; }
     setLoading(true);
-    setTimeout(() => {
-      try {
-        const r = analyze(d1, d2, threshold, filterData, wtCols, multipliers);
+    runAnalysisInWorker(d1, d2, threshold, filterData, wtCols, multipliers)
+      .then((r) => {
         setResults(r);
         showSnackbar(`Analysis complete: ${r.active.length} active employees, ${r.zeroPay.length} zero pay`, 'success');
-      } catch (err) {
+      })
+      .catch((err) => {
         showSnackbar('Analysis error: ' + err.message, 'error');
         console.error(err);
-      }
-      setLoading(false);
-    }, 100);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, [d1, d2, threshold, filterData, wtCols, multipliers]);
 
   const handleExport = useCallback(() => {
     if (!results) return;
-    try {
-      exportToExcel(results.active, results.zeroPay, results.detailed, results.removed, results.added,
-        p1Name || 'Period 1', p2Name || 'Period 2', wtCols, results.active101, results.zeroPay101);
-      showSnackbar('Excel file exported successfully', 'success');
-    } catch (err) {
-      console.error('Export error:', err);
-      showSnackbar('Export error: ' + err.message, 'error');
-    }
+    setExportLoading(true);
+    setTimeout(() => {
+      try {
+        exportToExcel(results.active, results.zeroPay, results.detailed, results.removed, results.added,
+          p1Name || 'Period 1', p2Name || 'Period 2', wtCols, results.active101, results.zeroPay101);
+        showSnackbar('Excel file exported successfully', 'success');
+      } catch (err) {
+        console.error('Export error:', err);
+        showSnackbar('Export error: ' + err.message, 'error');
+      }
+      setExportLoading(false);
+    }, 100);
   }, [results, p1Name, p2Name, wtCols]);
 
   const n1 = p1Name || 'Period 1';
@@ -178,6 +185,7 @@ export default function App() {
             onExport={handleExport}
             canAnalyze={!!d1 && !!d2}
             hasResults={!!results}
+            exportLoading={exportLoading}
           />
 
           {loading && (

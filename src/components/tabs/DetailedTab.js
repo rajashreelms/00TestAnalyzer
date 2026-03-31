@@ -1,7 +1,7 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Typography, Box, Paper, Chip, IconButton, Collapse, Alert,
+  Typography, Box, Paper, Chip, IconButton, Collapse, Alert, TablePagination,
 } from '@mui/material';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
@@ -13,6 +13,8 @@ export default function DetailedTab({ data, n1, n2 }) {
   const [sort, setSort] = useState('');
   const [discOnly, setDiscOnly] = useState(false);
   const [expandedEmps, setExpandedEmps] = useState({});
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(100);
 
   // Group data by employee: { id -> { summary, details[] } }
   const grouped = useMemo(() => {
@@ -29,6 +31,8 @@ export default function DetailedTab({ data, n1, n2 }) {
   }, [data]);
 
   // Filter + sort employee groups
+  useEffect(() => { setPage(0); }, [grouped, search, sort, discOnly]);
+
   const filteredGroups = useMemo(() => {
     let entries = Object.entries(grouped);
 
@@ -77,7 +81,8 @@ export default function DetailedTab({ data, n1, n2 }) {
 
   const totalRecords = filteredGroups.reduce((s, [, g]) => s + g.details.length, 0);
   const totalDisc = filteredGroups.reduce((s, [, g]) => s + g.details.filter((r) => r.st === 'Discrepancy').length, 0);
-  const reset = () => { setSearch(''); setSort(''); setDiscOnly(false); setExpandedEmps({}); };
+  const paginatedGroups = filteredGroups.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const reset = () => { setSearch(''); setSort(''); setDiscOnly(false); setExpandedEmps({}); setPage(0); };
 
   const toggleExpand = useCallback((id) => {
     setExpandedEmps((prev) => ({ ...prev, [id]: !prev[id] }));
@@ -147,7 +152,7 @@ export default function DetailedTab({ data, n1, n2 }) {
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredGroups.map(([id, group]) => {
+            {paginatedGroups.map(([id, group]) => {
               const s = group.summary;
               const isOpen = !!expandedEmps[id];
               const hasDisc = group.details.some((r) => r.st === 'Discrepancy');
@@ -294,6 +299,16 @@ export default function DetailedTab({ data, n1, n2 }) {
           </TableBody>
         </Table>
       </TableContainer>
+      <TablePagination
+        component="div"
+        count={filteredGroups.length}
+        page={page}
+        onPageChange={(_, p) => setPage(p)}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+        rowsPerPageOptions={[50, 100, 250, 500]}
+        labelRowsPerPage="Employees per page:"
+      />
     </Box>
   );
 }

@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Typography, Box, Paper, Alert, Chip,
+  Typography, Box, Paper, Alert, Chip, TablePagination,
 } from '@mui/material';
 import { fmt } from '../../utils/payrollEngine';
 import Toolbar from '../Toolbar';
@@ -10,6 +10,10 @@ export default function RemovedWTTab({ data, n1, n2 }) {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('');
   const [filter, setFilter] = useState('all');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(100);
+
+  useEffect(() => { setPage(0); }, [data, search, sort, filter]);
 
   const filtered = useMemo(() => {
     let result = [...data];
@@ -35,7 +39,8 @@ export default function RemovedWTTab({ data, n1, n2 }) {
   }, [data, search, sort, filter]);
 
   const totalImpact = filtered.reduce((s, r) => s + Math.abs(r.impact), 0);
-  const reset = () => { setSearch(''); setSort(''); setFilter('all'); };
+  const paginatedData = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  const reset = () => { setSearch(''); setSort(''); setFilter('all'); setPage(0); };
 
   return (
     <Box>
@@ -88,7 +93,7 @@ export default function RemovedWTTab({ data, n1, n2 }) {
             </TableRow>
           </TableHead>
           <TableBody>
-            {filtered.map((r, i) => (
+            {paginatedData.map((r, i) => (
               <TableRow key={`${r.id}-${r.wt}-${i}`} sx={{ bgcolor: '#fff5f5', '&:hover': { bgcolor: '#fce8e8' } }}>
                 <TableCell><Typography variant="body2" fontWeight={700}>{r.id}</Typography></TableCell>
                 <TableCell>{r.nm}</TableCell>
@@ -111,6 +116,15 @@ export default function RemovedWTTab({ data, n1, n2 }) {
           </TableBody>
         </Table>
       </TableContainer>
+      <TablePagination
+        component="div"
+        count={filtered.length}
+        page={page}
+        onPageChange={(_, p) => setPage(p)}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+        rowsPerPageOptions={[50, 100, 250, 500]}
+      />
     </Box>
   );
 }
