@@ -1,23 +1,21 @@
 import * as XLSX from 'xlsx';
 import { saveAs } from 'file-saver';
-
-// ─── PAYROLL COMPARISON CONCEPT ────────────────────────────────────────────
-// /559 ("Transfer to bank") is the actual Net Pay per employee in payroll data.
-// /101 ("Gross amount") is the Gross Pay per employee in payroll data.
-// The WT filter file lists the wage types that bifurcate/explain these totals.
-// This tool compares /559 and /101 between current and previous month, then
-// breaks down which wage types from the filter file caused the variance.
-// Reconciliation: Sum of (filter WT amounts × multipliers) should equal the target WT.
-// ────────────────────────────────────────────────────────────────────────────
-
-const NET_PAY_WT = 'Transfer to bank'; // /559
-const GROSS_WT = 'Gross amount';       // /101
+import {
+  NET_PAY_WT, GROSS_WT,
+  COLUMN_MAP as CFG_COLUMN_MAP,
+  COL_ID, COL_NAME, COL_WT_LONG, COL_WT_SHORT, COL_AMOUNT, COL_COMPONENT_TYPE, COL_MULTIPLIER,
+  COMP_EARNINGS, COMP_DEDUCTION, COMP_NET_PAY,
+  STATUS_DISCREPANCY, STATUS_APPROVED,
+  NUMBER_LOCALE, NUMBER_FORMAT_OPTIONS,
+  TEXT_EXTENSIONS,
+  EXCEL_COLORS, SHEET_NAMES,
+} from '../config';
 
 export function parseExcel(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     const ext = file.name.split('.').pop().toLowerCase();
-    const isText = ext === 'csv' || ext === 'txt' || ext === 'tsv';
+    const isText = TEXT_EXTENSIONS.includes(ext);
 
     reader.onload = (e) => {
       try {
@@ -48,14 +46,7 @@ export function parseExcel(file) {
 
 // ─── Column normalization ──────────────────────────────────────────────────
 
-const COLUMN_MAP = {
-  'Employee ID': 'ID', 'employee id': 'ID', 'Emp ID': 'ID', 'EmpID': 'ID',
-  'Employee Name': 'Name', 'employee name': 'Name', 'Emp Name': 'Name', 'EmpName': 'Name',
-  'Component Type': 'Componenet Type', 'component type': 'Componenet Type',
-  'Componenet Type': 'Componenet Type',
-  'wage type': 'Wage Type', 'WT': 'Wage Type', 'Wage type': 'Wage Type',
-  'wage type long text': 'Wage Type Long Text',
-};
+const COLUMN_MAP = CFG_COLUMN_MAP;
 
 function normalizeColumns(json) {
   if (!json.length) return json;
@@ -98,28 +89,28 @@ export function parseFilterFile(json) {
   const wtCols = { earn: [], ded: [], all: [] };
   const multipliers = {};
   const wtCodeMap = {}; // WT Long Text → WT short code from filter file
-  const hasMultiplierColumn = 'Amount Multiplied By' in (json[0] || {});
+  const hasMultiplierColumn = COL_MULTIPLIER in (json[0] || {});
 
   json.forEach((r) => {
-    const wt = (r['Wage Type Long Text'] || '').trim();
-    const c = (r['Componenet Type'] || '').trim();
+    const wt = (r[COL_WT_LONG] || '').trim();
+    const c = (r[COL_COMPONENT_TYPE] || '').trim();
     if (!wt) return;
     df.a.push(wt);
     wtCols.all.push(wt);
     // Capture WT code if available
-    const code = r['Wage Type'] !== undefined && r['Wage Type'] !== null ? String(r['Wage Type']).trim() : '';
+    const code = r[COL_WT_SHORT] !== undefined && r[COL_WT_SHORT] !== null ? String(r[COL_WT_SHORT]).trim() : '';
     if (code) wtCodeMap[wt] = code;
     let mult = 1;
     if (hasMultiplierColumn) {
-      const multVal = r['Amount Multiplied By'];
+      const multVal = r[COL_MULTIPLIER];
       if (multVal !== undefined && multVal !== null && multVal !== '') {
         mult = parseNum(multVal);
       }
     }
     multipliers[wt] = mult;
-    if (c === 'Earnings') { df.e.push(wt); wtCols.earn.push(wt); }
-    else if (c === 'Deduction') { df.d.push(wt); wtCols.ded.push(wt); }
-    else if (c === 'Net Pay') df.n.push(wt);
+    if (c === COMP_EARNINGS) { df.e.push(wt); wtCols.earn.push(wt); }
+    else if (c === COMP_DEDUCTION) { df.d.push(wt); wtCols.ded.push(wt); }
+    else if (c === COMP_NET_PAY) df.n.push(wt);
   });
 
   return { df, wtCols, multipliers, hasMultiplierColumn, wtCodeMap };
@@ -131,9 +122,9 @@ function sumRecords(data) {
   const g = {};
   data.forEach((r) => {
     const id = String(r.ID).trim();
-    const wt = (r['Wage Type Long Text'] || '').trim();
+    const wt = (r[COL_WT_LONG] || '').trim();
     const k = `${id}|||${wt}`;
-    if (!g[k]) g[k] = { ID: id, Name: r.Name, 'Wage Type Long Text': wt, 'Wage Type': r['Wage Type'] || '', Amount: 0 };
+    if (!g[k]) g[k] = { ID: id, Name: r.Name, COL_WT_LONG: wt, 'Wage Type': r[COL_WT_SHORT] || '', Amount: 0 };
     g[k].Amount += parseNum(r.Amount);
   });
   return Object.values(g);
@@ -143,8 +134,8 @@ function sumRecords(data) {
 function buildWTCodeMap(data) {
   const map = {};
   data.forEach((r) => {
-    const wt = (r['Wage Type Long Text'] || '').trim();
-    const code = r['Wage Type'] !== undefined && r['Wage Type'] !== null ? String(r['Wage Type']).trim() : '';
+    const wt = (r[COL_WT_LONG] || '').trim();
+    const code = r[COL_WT_SHORT] !== undefined && r[COL_WT_SHORT] !== null ? String(r[COL_WT_SHORT]).trim() : '';
     if (wt && code && !map[wt]) map[wt] = code;
   });
   return map;
@@ -162,7 +153,7 @@ function groupById(data) {
 
 function getRawAmt(entries, wt) {
   return entries
-    .filter((r) => (r['Wage Type Long Text'] || '').trim() === wt)
+    .filter((r) => (r[COL_WT_LONG] || '').trim() === wt)
     .reduce((s, r) => s + parseNum(r.Amount), 0);
 }
 
@@ -174,9 +165,9 @@ function getWTAmt(entries, wt, multipliers) {
 
 function getComponentType(wt, df) {
   if (!df) return 'Unknown';
-  if (df.e.includes(wt)) return 'Earnings';
-  if (df.d.includes(wt)) return 'Deduction';
-  if (df.n.includes(wt)) return 'Net Pay';
+  if (df.e.includes(wt)) return COMP_EARNINGS;
+  if (df.d.includes(wt)) return COMP_DEDUCTION;
+  if (df.n.includes(wt)) return COMP_NET_PAY;
   return 'Other';
 }
 
@@ -192,8 +183,8 @@ export function analyze(d1Raw, d2Raw, threshold, df, wtCols, multipliers) {
 
   // Filter to only WT-filter wage types for bifurcation analysis
   const filterWTs = df ? df.a : [];
-  let p1 = filterWTs.length ? all1.filter((r) => filterWTs.includes(r['Wage Type Long Text'])) : all1;
-  let p2 = filterWTs.length ? all2.filter((r) => filterWTs.includes(r['Wage Type Long Text'])) : all2;
+  let p1 = filterWTs.length ? all1.filter((r) => filterWTs.includes(r[COL_WT_LONG])) : all1;
+  let p2 = filterWTs.length ? all2.filter((r) => filterWTs.includes(r[COL_WT_LONG])) : all2;
 
   // /559 analysis (all WTs for reconciliation)
   const net559 = calcNetForWT(NET_PAY_WT, p1, p2, all1, all2, threshold, df, wtCols, multipliers, wtCodeMap, false);
@@ -281,8 +272,8 @@ function calcNetForWT(targetWT, p1, p2, all1, all2, threshold, df, wtCols, multi
     }
 
     // Variance reconciliation: does sum of recon WT diffs explain the target variance?
-    // Var Recon: does WT change explain the target variance? 0 = fully explained
-    const varReconDiff = hasFilter ? v - (p1gross - p2gross) : 0;
+    // Var Recon = Variance - (P1 Recon - P2 Recon). 0 = fully explained
+    const varReconDiff = hasFilter ? v - (p1ReconDiff - p2ReconDiff) : 0;
 
     // Build structured wage type breakdown: { name, wtCode, p1amt, p2amt, diff, compType }
     const wtBreakdown = [];
@@ -304,7 +295,7 @@ function calcNetForWT(targetWT, p1, p2, all1, all2, threshold, df, wtCols, multi
 
     active.push({
       id, nm, p2net, p1net, v, vp,
-      st: Math.abs(vp) > threshold ? 'Discrepancy' : 'Approved',
+      st: Math.abs(vp) > threshold ? STATUS_DISCREPANCY : STATUS_APPROVED,
       wtDiffs,
       p1GrossToNetDiff: p1ReconDiff,
       p2GrossToNetDiff: p2ReconDiff,
@@ -329,7 +320,7 @@ function calcDetailed(p1, p2, threshold, multipliers, df, wtCodeMap) {
     const e2 = g2[id] || [];
     if (!e1.length && !e2.length) return;
     const nm = e1.length ? e1[0].Name : (e2.length ? e2[0].Name : 'Unknown');
-    const wts = new Set([...e1.map((r) => r['Wage Type Long Text']), ...e2.map((r) => r['Wage Type Long Text'])]);
+    const wts = new Set([...e1.map((r) => r[COL_WT_LONG]), ...e2.map((r) => r[COL_WT_LONG])]);
 
     let empTotalA1 = 0, empTotalA2 = 0;
     const empWtRows = [];
@@ -351,7 +342,7 @@ function calcDetailed(p1, p2, threshold, multipliers, df, wtCodeMap) {
 
       const row = {
         id, nm, wt, wtCode: wtCodeMap[wt] || '', mult, a1, a2, v, vp, compType,
-        st: Math.abs(vp) > threshold ? 'Discrepancy' : 'Approved',
+        st: Math.abs(vp) > threshold ? STATUS_DISCREPANCY : STATUS_APPROVED,
         isGroupHeader: false,
       };
       detMap[key] = row;
@@ -397,12 +388,12 @@ function calcWTChanges(p1, p2, multipliers, df, wtCodeMap) {
   allIds.forEach((id) => {
     const e1 = g1[id] || [];
     const e2 = g2[id] || [];
-    const wt1Set = new Set(e1.map((r) => r['Wage Type Long Text']));
-    const wt2Set = new Set(e2.map((r) => r['Wage Type Long Text']));
+    const wt1Set = new Set(e1.map((r) => r[COL_WT_LONG]));
+    const wt2Set = new Set(e2.map((r) => r[COL_WT_LONG]));
     const empName = e1.length > 0 ? e1[0].Name : (e2.length > 0 ? e2[0].Name : 'Unknown');
 
     e2.forEach((record) => {
-      const wt = record['Wage Type Long Text'];
+      const wt = record[COL_WT_LONG];
       if (!wt1Set.has(wt)) {
         const amt = parseNum(record.Amount);
         const mult = multipliers[wt] !== undefined ? multipliers[wt] : 1;
@@ -418,7 +409,7 @@ function calcWTChanges(p1, p2, multipliers, df, wtCodeMap) {
     });
 
     e1.forEach((record) => {
-      const wt = record['Wage Type Long Text'];
+      const wt = record[COL_WT_LONG];
       if (!wt2Set.has(wt)) {
         const amt = parseNum(record.Amount);
         const mult = multipliers[wt] !== undefined ? multipliers[wt] : 1;
@@ -440,27 +431,12 @@ function calcWTChanges(p1, p2, multipliers, df, wtCodeMap) {
 // ─── Formatting ────────────────────────────────────────────────────────────
 
 export function fmt(n) {
-  return Math.abs(n).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return Math.abs(n).toLocaleString(NUMBER_LOCALE, NUMBER_FORMAT_OPTIONS);
 }
 
 // ─── Excel Export (with color-coded styling matching UI palette) ────────────
 
-// Color palette matching the React UI
-const COLORS = {
-  primaryBg: '1A73E8',   // Blue header
-  primaryFg: 'FFFFFF',
-  earningBg: '1E8E3E',   // Green
-  deductBg: 'C62828',    // Red
-  reconBg: '6D4C00',     // Brown
-  warningBg: 'FFF8E1',   // Light yellow
-  warningBorder: 'F9AB00',
-  errorBg: 'FCE8E8',     // Light red
-  errorText: 'C62828',
-  successBg: 'E6F4EA',   // Light green
-  successText: '1E8E3E',
-  summaryBg: 'F5F5F5',   // Light grey for summary rows
-  discrepancyBg: 'FFF3E0', // Orange tint
-};
+const COLORS = EXCEL_COLORS;
 
 function styleHeader(ws, colCount, bgColor = COLORS.primaryBg) {
   for (let c = 0; c < colCount; c++) {
@@ -572,7 +548,7 @@ export function exportToExcel(nd, zd, dd, rmd, add, n1, n2, wtCols, nd101, zd101
     }
     return null;
   });
-  XLSX.utils.book_append_sheet(wb, ws1, 'Active Net Pay');
+  XLSX.utils.book_append_sheet(wb, ws1, SHEET_NAMES.activeNetPay);
 
   // ── Sheet 2: Zero Pay ──
   const zeroComment = `[Zero /559] These employees have /559 (Transfer to bank) = 0 in ${n1}. Possible reasons: leave, suspension, termination, or payroll error. Previous period /559 shown for comparison.`;
@@ -586,7 +562,7 @@ export function exportToExcel(nd, zd, dd, rmd, add, n1, n2, wtCols, nd101, zd101
   const ws2 = XLSX.utils.json_to_sheet(ze);
   styleHeader(ws2, 6, COLORS.warningBorder);
   styleDataCells(ws2, ze, 6, () => ({ fill: { fgColor: { rgb: COLORS.warningBg } } }));
-  XLSX.utils.book_append_sheet(wb, ws2, 'Zero Pay');
+  XLSX.utils.book_append_sheet(wb, ws2, SHEET_NAMES.zeroPay);
 
   // ── Sheet 3: Detailed Bifurcation ──
   const detComment = `[WT Bifurcation] Each tracked wage type per employee. Amount = raw amount × multiplier. Summary rows show employee totals. Discrepancy = variance % exceeds threshold.`;
@@ -627,7 +603,7 @@ export function exportToExcel(nd, zd, dd, rmd, add, n1, n2, wtCols, nd101, zd101
     }
     return null;
   });
-  XLSX.utils.book_append_sheet(wb, ws3, 'WT Bifurcation');
+  XLSX.utils.book_append_sheet(wb, ws3, SHEET_NAMES.wtBifurcation);
 
   // ── Sheet 4: Removed WT ──
   const rmComment = `[Removed WTs] Tracked wage types present in ${n2} but missing in ${n1}. Impact = amount × multiplier. Positive impact from earnings removal reduces income; negative impact from deduction removal increases income.`;
@@ -643,7 +619,7 @@ export function exportToExcel(nd, zd, dd, rmd, add, n1, n2, wtCols, nd101, zd101
   const ws4 = XLSX.utils.json_to_sheet(re);
   styleHeader(ws4, 9, COLORS.errorText);
   styleDataCells(ws4, re, 9, () => ({ fill: { fgColor: { rgb: COLORS.errorBg } } }));
-  XLSX.utils.book_append_sheet(wb, ws4, 'Removed WT');
+  XLSX.utils.book_append_sheet(wb, ws4, SHEET_NAMES.removedWT);
 
   // ── Sheet 5: Added WT ──
   const addComment = `[New WTs] Tracked wage types present in ${n1} but absent in ${n2}. Impact = amount × multiplier. New earnings increase income; new deductions reduce income.`;
@@ -659,7 +635,7 @@ export function exportToExcel(nd, zd, dd, rmd, add, n1, n2, wtCols, nd101, zd101
   const ws5 = XLSX.utils.json_to_sheet(ae);
   styleHeader(ws5, 9, COLORS.successText);
   styleDataCells(ws5, ae, 9, () => ({ fill: { fgColor: { rgb: COLORS.successBg } } }));
-  XLSX.utils.book_append_sheet(wb, ws5, 'New WT');
+  XLSX.utils.book_append_sheet(wb, ws5, SHEET_NAMES.newWT);
 
   // ── Sheet 6: Active Gross Pay (/101) ──
   if (nd101 && nd101.length) {
@@ -706,7 +682,7 @@ export function exportToExcel(nd, zd, dd, rmd, add, n1, n2, wtCols, nd101, zd101
       if (row.Status === 'Discrepancy') return { fill: { fgColor: { rgb: COLORS.discrepancyBg } } };
       return null;
     });
-    XLSX.utils.book_append_sheet(wb, wsG, 'Active Gross Pay 101');
+    XLSX.utils.book_append_sheet(wb, wsG, SHEET_NAMES.activeGross);
   }
 
   // ── Sheet 7: Zero Gross Pay (/101) ──
@@ -721,7 +697,7 @@ export function exportToExcel(nd, zd, dd, rmd, add, n1, n2, wtCols, nd101, zd101
     const wsZ101 = XLSX.utils.json_to_sheet(ze101);
     styleHeader(wsZ101, 6, COLORS.warningBorder);
     styleDataCells(wsZ101, ze101, 6, () => ({ fill: { fgColor: { rgb: COLORS.warningBg } } }));
-    XLSX.utils.book_append_sheet(wb, wsZ101, 'Zero Gross Pay 101');
+    XLSX.utils.book_append_sheet(wb, wsZ101, SHEET_NAMES.zeroGross);
   }
 
   // ── Sheet 8: Legend / Comments ──
@@ -753,7 +729,7 @@ export function exportToExcel(nd, zd, dd, rmd, add, n1, n2, wtCols, nd101, zd101
   const ws6 = XLSX.utils.json_to_sheet(legend);
   styleHeader(ws6, 2);
   setColWidths(ws6, [25, 120]);
-  XLSX.utils.book_append_sheet(wb, ws6, 'Legend & Comments');
+  XLSX.utils.book_append_sheet(wb, ws6, SHEET_NAMES.legend);
 
   const fileName = `Payroll_Analysis_${n1.replace(/ /g, '')}_vs_${n2.replace(/ /g, '')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
   const wbOut = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });

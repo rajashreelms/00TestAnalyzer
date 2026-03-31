@@ -1,4 +1,5 @@
 import { Paper, Typography, Box, Chip, IconButton, Tooltip } from '@mui/material';
+import { CREATOR_NAME, COMPANY_NAME, APP_NAME } from '../config';
 import AnalyticsIcon from '@mui/icons-material/Analytics';
 import MenuBookIcon from '@mui/icons-material/MenuBook';
 import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
@@ -60,7 +61,7 @@ export default function Header({ onOpenGuide }) {
           </Box>
           <Box>
             <Typography variant="h5" fontWeight={800} letterSpacing="-0.02em" sx={{ mb: 0.5 }}>
-              Payroll Variance Analysis
+              {APP_NAME}
             </Typography>
             <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap' }}>
               {features.map((f) => (
@@ -86,10 +87,10 @@ export default function Header({ onOpenGuide }) {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Box sx={{ textAlign: 'right' }}>
             <Typography variant="caption" sx={{ opacity: 0.7, display: 'block', fontWeight: 600 }}>
-              Created by Rajashree
+              Created by {CREATOR_NAME}
             </Typography>
             <Typography variant="caption" sx={{ opacity: 0.5, fontWeight: 500 }}>
-              Zalaris
+              {COMPANY_NAME}
             </Typography>
           </Box>
           <Tooltip title="Open User Guide" arrow>

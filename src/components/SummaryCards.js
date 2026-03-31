@@ -1,4 +1,5 @@
 import { Grid, Paper, Typography, Box, Tooltip } from '@mui/material';
+import { CRITICAL_VARIANCE_THRESHOLD, RECON_TOLERANCE } from '../config';
 import PeopleIcon from '@mui/icons-material/People';
 import PersonIcon from '@mui/icons-material/Person';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
@@ -39,9 +40,9 @@ export default function SummaryCards({ active, zeroPay, removed, added, detailed
   const cards = getCards(wageTypeLabel, wageTypeName);
   const totalEmp = new Set([...active.map((r) => r.id), ...zeroPay.map((r) => r.id)]).size;
   const discCount = active.filter((r) => r.st === 'Discrepancy').length;
-  const critCount = active.filter((r) => Math.abs(r.vp) > 10).length;
+  const critCount = active.filter((r) => Math.abs(r.vp) > CRITICAL_VARIANCE_THRESHOLD).length;
   const avgVar = active.length ? active.reduce((s, r) => s + Math.abs(r.vp), 0) / active.length : 0;
-  const perfRecon = active.filter((r) => Math.abs(r.p1GrossToNetDiff) < 1 && Math.abs(r.p2GrossToNetDiff) < 1).length;
+  const perfRecon = active.filter((r) => Math.abs(r.p1GrossToNetDiff) < RECON_TOLERANCE && Math.abs(r.p2GrossToNetDiff) < RECON_TOLERANCE).length;
 
   const values = {
     total: totalEmp,

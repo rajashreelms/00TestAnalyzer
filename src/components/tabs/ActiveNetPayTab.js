@@ -7,8 +7,9 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { fmt } from '../../utils/payrollEngine';
 import Toolbar from '../Toolbar';
+import { WT_VISIBLE_COUNT, DEFAULT_ROWS_PER_PAGE, ROWS_PER_PAGE_OPTIONS, RECON_TOLERANCE, TABLE_COLORS, STATUS_DISCREPANCY } from '../../config';
 
-const VISIBLE_COUNT = 5; // Show top 5 wage types, collapse the rest
+const VISIBLE_COUNT = WT_VISIBLE_COUNT;
 
 function WTBreakdownCell({ breakdown, netPay, changes, wtLabel = '/559', wtName = 'Bank Transfer' }) {
   const [expanded, setExpanded] = useState(false);
@@ -95,13 +96,13 @@ export default function ActiveNetPayTab({ data, wtCols, n1, n2, wageTypeLabel = 
   const [sort, setSort] = useState('');
   const [discOnly, setDiscOnly] = useState(false);
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(100);
+  const [rowsPerPage, setRowsPerPage] = useState(DEFAULT_ROWS_PER_PAGE);
 
   useEffect(() => { setPage(0); }, [data, search, sort, discOnly]);
 
   const filtered = useMemo(() => {
     let result = [...data];
-    if (discOnly) result = result.filter((r) => r.st === 'Discrepancy');
+    if (discOnly) result = result.filter((r) => r.st === STATUS_DISCREPANCY);
     if (search) {
       const s = search.toLowerCase();
       result = result.filter((r) =>
@@ -121,12 +122,12 @@ export default function ActiveNetPayTab({ data, wtCols, n1, n2, wageTypeLabel = 
     return result;
   }, [data, search, sort, discOnly]);
 
-  const discCount = filtered.filter((r) => r.st === 'Discrepancy').length;
+  const discCount = filtered.filter((r) => r.st === STATUS_DISCREPANCY).length;
   const paginatedData = filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
   const reset = () => { setSearch(''); setSort(''); setDiscOnly(false); setPage(0); };
 
   const varColor = (val) => val > 0 ? 'success.main' : val < 0 ? 'error.main' : 'success.main';
-  const reconColor = (val) => Math.abs(val) < 1 ? 'success.main' : 'error.main';
+  const reconColor = (val) => Math.abs(val) < RECON_TOLERANCE ? 'success.main' : 'error.main';
 
   return (
     <Box>
@@ -174,7 +175,7 @@ export default function ActiveNetPayTab({ data, wtCols, n1, n2, wageTypeLabel = 
                 const code = wtCodeMap[wt];
                 const label = code ? `${code} : ${wt}` : wt;
                 return (
-                  <TableCell key={wt} sx={{ ...hStyle, bgcolor: '#059669' }} align="right" title={label}>
+                  <TableCell key={wt} sx={{ ...hStyle, bgcolor: TABLE_COLORS.earnings }} align="right" title={label}>
                     {label.length > 20 ? label.substring(0, 18) + '...' : label}
                   </TableCell>
                 );
@@ -183,14 +184,14 @@ export default function ActiveNetPayTab({ data, wtCols, n1, n2, wageTypeLabel = 
                 const code = wtCodeMap[wt];
                 const label = code ? `${code} : ${wt}` : wt;
                 return (
-                  <TableCell key={wt} sx={{ ...hStyle, bgcolor: '#DC2626' }} align="right" title={label}>
+                  <TableCell key={wt} sx={{ ...hStyle, bgcolor: TABLE_COLORS.deduction }} align="right" title={label}>
                     {label.length > 20 ? label.substring(0, 18) + '...' : label}
                   </TableCell>
                 );
               })}
-              <TableCell sx={{ ...hStyle, bgcolor: '#92400E' }} align="right" title={`${wageTypeLabel} minus Sum(WT × Mult)`}>{n1} Recon{'\n'}({wageTypeLabel} - Calc)</TableCell>
-              <TableCell sx={{ ...hStyle, bgcolor: '#92400E' }} align="right" title={`${wageTypeLabel} minus Sum(WT × Mult)`}>{n2} Recon{'\n'}({wageTypeLabel} - Calc)</TableCell>
-              <TableCell sx={{ ...hStyle, bgcolor: '#92400E' }} align="right" title={`Does WT diff explain ${wageTypeLabel} diff?`}>Var Recon{'\n'}Diff</TableCell>
+              <TableCell sx={{ ...hStyle, bgcolor: TABLE_COLORS.recon }} align="right" title={`${wageTypeLabel} minus Sum(WT × Mult)`}>{n1} Recon{'\n'}({wageTypeLabel} - Calc)</TableCell>
+              <TableCell sx={{ ...hStyle, bgcolor: TABLE_COLORS.recon }} align="right" title={`${wageTypeLabel} minus Sum(WT × Mult)`}>{n2} Recon{'\n'}({wageTypeLabel} - Calc)</TableCell>
+              <TableCell sx={{ ...hStyle, bgcolor: TABLE_COLORS.recon }} align="right" title={`Does WT diff explain ${wageTypeLabel} diff?`}>Var Recon{'\n'}Diff</TableCell>
               <TableCell sx={{ ...hStyle, minWidth: 340 }}>WT Bifurcation{'\n'}(Current Period)</TableCell>
               <TableCell sx={hStyle} align="center">Status</TableCell>
             </TableRow>
@@ -199,7 +200,7 @@ export default function ActiveNetPayTab({ data, wtCols, n1, n2, wageTypeLabel = 
             {paginatedData.map((r) => (
               <TableRow
                 key={r.id}
-                sx={{ bgcolor: r.st === 'Discrepancy' ? 'warning.50' : undefined, '&:hover': { bgcolor: 'action.hover' } }}
+                sx={{ bgcolor: r.st === STATUS_DISCREPANCY ? 'warning.50' : undefined, '&:hover': { bgcolor: 'action.hover' } }}
               >
                 <TableCell><Typography variant="body2" fontWeight={700}>{r.id}</Typography></TableCell>
                 <TableCell><Typography variant="body2">{r.nm}</Typography></TableCell>
@@ -264,14 +265,14 @@ export default function ActiveNetPayTab({ data, wtCols, n1, n2, wageTypeLabel = 
         onPageChange={(_, p) => setPage(p)}
         rowsPerPage={rowsPerPage}
         onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-        rowsPerPageOptions={[50, 100, 250, 500]}
+        rowsPerPageOptions={ROWS_PER_PAGE_OPTIONS}
       />
     </Box>
   );
 }
 
 const hStyle = {
-  bgcolor: '#4F46E5',
+  bgcolor: TABLE_COLORS.primary,
   color: 'white',
   fontWeight: 700,
   fontSize: 11,

@@ -5,13 +5,14 @@ import {
 } from '@mui/material';
 import { fmt } from '../../utils/payrollEngine';
 import Toolbar from '../Toolbar';
+import { DEFAULT_ROWS_PER_PAGE, ROWS_PER_PAGE_OPTIONS, TABLE_COLORS, ROW_COLORS } from '../../config';
 
 export default function RemovedWTTab({ data, n1, n2 }) {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('');
   const [filter, setFilter] = useState('all');
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(100);
+  const [rowsPerPage, setRowsPerPage] = useState(DEFAULT_ROWS_PER_PAGE);
 
   useEffect(() => { setPage(0); }, [data, search, sort, filter]);
 
@@ -95,7 +96,7 @@ export default function RemovedWTTab({ data, n1, n2 }) {
           </TableHead>
           <TableBody>
             {paginatedData.map((r, i) => (
-              <TableRow key={`${r.id}-${r.wt}-${i}`} sx={{ bgcolor: '#FEF2F2', '&:hover': { bgcolor: '#FEE2E2' }, transition: 'background 0.15s ease' }}>
+              <TableRow key={`${r.id}-${r.wt}-${i}`} sx={{ bgcolor: ROW_COLORS.removed.bg, '&:hover': { bgcolor: ROW_COLORS.removed.hover }, transition: 'background 0.15s ease' }}>
                 <TableCell><Typography variant="body2" fontWeight={700}>{r.id}</Typography></TableCell>
                 <TableCell>{r.nm}</TableCell>
                 <TableCell><Typography variant="body2" fontWeight={600} color="text.secondary">{r.wtCode || ''}</Typography></TableCell>
@@ -125,14 +126,14 @@ export default function RemovedWTTab({ data, n1, n2 }) {
         onPageChange={(_, p) => setPage(p)}
         rowsPerPage={rowsPerPage}
         onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-        rowsPerPageOptions={[50, 100, 250, 500]}
+        rowsPerPageOptions={ROWS_PER_PAGE_OPTIONS}
       />
     </Box>
   );
 }
 
 const hStyle = {
-  bgcolor: '#DC2626',
+  bgcolor: TABLE_COLORS.deduction,
   color: 'white',
   fontWeight: 700,
   fontSize: 12,

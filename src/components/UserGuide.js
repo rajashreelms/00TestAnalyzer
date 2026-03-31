@@ -4,6 +4,7 @@ import {
   Accordion, AccordionSummary, AccordionDetails, Chip, Divider,
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import { APP_NAME, APP_VERSION, CREATOR_NAME, COMPANY_NAME } from '../config';
 import SearchIcon from '@mui/icons-material/Search';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
@@ -159,7 +160,7 @@ export default function UserGuide({ open, onClose }) {
           <Box>
             <Typography variant="h6" fontWeight={700}>User Guide</Typography>
             <Typography variant="caption" sx={{ opacity: 0.8 }}>
-              Payroll Variance Analysis Documentation
+              {APP_NAME} Documentation
             </Typography>
           </Box>
           <IconButton onClick={onClose} sx={{ color: 'white', mt: -0.5 }}>
@@ -278,7 +279,7 @@ export default function UserGuide({ open, onClose }) {
         textAlign: 'center', bgcolor: 'background.paper',
       }}>
         <Typography variant="caption" color="text.disabled">
-          Payroll Variance Analysis v1.0 | Created by Rajashree, Zalaris
+          {APP_NAME} v{APP_VERSION} | Created by {CREATOR_NAME}, {COMPANY_NAME}
         </Typography>
       </Box>
     </Drawer>

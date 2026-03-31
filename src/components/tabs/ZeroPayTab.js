@@ -5,12 +5,13 @@ import {
 } from '@mui/material';
 import { fmt } from '../../utils/payrollEngine';
 import Toolbar from '../Toolbar';
+import { DEFAULT_ROWS_PER_PAGE, ROWS_PER_PAGE_OPTIONS, TABLE_COLORS, ROW_COLORS } from '../../config';
 
 export default function ZeroPayTab({ data, n1, n2, wageTypeLabel = '/559', wageTypeName = 'Transfer to bank' }) {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('');
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(100);
+  const [rowsPerPage, setRowsPerPage] = useState(DEFAULT_ROWS_PER_PAGE);
 
   useEffect(() => { setPage(0); }, [data, search, sort]);
 
@@ -72,7 +73,7 @@ export default function ZeroPayTab({ data, n1, n2, wageTypeLabel = '/559', wageT
           </TableHead>
           <TableBody>
             {paginatedData.map((r) => (
-              <TableRow key={r.id} sx={{ bgcolor: '#FFFBEB', '&:hover': { bgcolor: '#FEF3C7' }, transition: 'background 0.15s ease' }}>
+              <TableRow key={r.id} sx={{ bgcolor: ROW_COLORS.zeroPay.bg, '&:hover': { bgcolor: ROW_COLORS.zeroPay.hover }, transition: 'background 0.15s ease' }}>
                 <TableCell><Typography variant="body2" fontWeight={700}>{r.id}</Typography></TableCell>
                 <TableCell>{r.nm}</TableCell>
                 <TableCell align="right">{fmt(r.p2net)}</TableCell>
@@ -96,14 +97,14 @@ export default function ZeroPayTab({ data, n1, n2, wageTypeLabel = '/559', wageT
         onPageChange={(_, p) => setPage(p)}
         rowsPerPage={rowsPerPage}
         onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-        rowsPerPageOptions={[50, 100, 250, 500]}
+        rowsPerPageOptions={ROWS_PER_PAGE_OPTIONS}
       />
     </Box>
   );
 }
 
 const hStyle = {
-  bgcolor: '#D97706',
+  bgcolor: TABLE_COLORS.warning,
   color: 'white',
   fontWeight: 700,
   fontSize: 12,

@@ -8,8 +8,7 @@ import EmailIcon from '@mui/icons-material/Email';
 import LightbulbIcon from '@mui/icons-material/Lightbulb';
 import CloseIcon from '@mui/icons-material/Close';
 import SendIcon from '@mui/icons-material/Send';
-
-const CONTACT_EMAIL = 'Rajashree.dharanikumar@zalaris.com';
+import { CONTACT_EMAIL, CREATOR_NAME, APP_NAME, COMPANY_NAME } from '../config';
 
 export default function Footer() {
   const [open, setOpen] = useState(false);
@@ -50,7 +49,7 @@ export default function Footer() {
       }}>
         <Box>
           <Typography variant="body2" sx={{ fontWeight: 600, color: '#475569' }}>
-            Created by Rajashree
+            Created by {CREATOR_NAME}
           </Typography>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
             <EmailIcon sx={{ fontSize: 14, color: '#94A3B8' }} />
@@ -90,7 +89,7 @@ export default function Footer() {
         </Box>
 
         <Typography variant="caption" sx={{ color: '#94A3B8' }}>
-          Payroll Variance Analysis &copy; {new Date().getFullYear()} Zalaris
+          {APP_NAME} &copy; {new Date().getFullYear()} {COMPANY_NAME}
         </Typography>
       </Box>
 

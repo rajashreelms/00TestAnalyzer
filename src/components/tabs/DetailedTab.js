@@ -7,6 +7,7 @@ import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import { fmt } from '../../utils/payrollEngine';
 import Toolbar from '../Toolbar';
+import { DEFAULT_ROWS_PER_PAGE, ROWS_PER_PAGE_OPTIONS, TABLE_COLORS, ROW_COLORS, STATUS_DISCREPANCY } from '../../config';
 
 export default function DetailedTab({ data, n1, n2 }) {
   const [search, setSearch] = useState('');
@@ -14,7 +15,7 @@ export default function DetailedTab({ data, n1, n2 }) {
   const [discOnly, setDiscOnly] = useState(false);
   const [expandedEmps, setExpandedEmps] = useState({});
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(100);
+  const [rowsPerPage, setRowsPerPage] = useState(DEFAULT_ROWS_PER_PAGE);
 
   // Group data by employee: { id -> { summary, details[] } }
   const grouped = useMemo(() => {
@@ -39,7 +40,7 @@ export default function DetailedTab({ data, n1, n2 }) {
     // Filter by discrepancy
     if (discOnly) {
       entries = entries.filter(([, g]) =>
-        g.details.some((r) => r.st === 'Discrepancy')
+        g.details.some((r) => r.st === STATUS_DISCREPANCY)
       );
     }
 
@@ -80,7 +81,7 @@ export default function DetailedTab({ data, n1, n2 }) {
   }, [grouped, search, sort, discOnly]);
 
   const totalRecords = filteredGroups.reduce((s, [, g]) => s + g.details.length, 0);
-  const totalDisc = filteredGroups.reduce((s, [, g]) => s + g.details.filter((r) => r.st === 'Discrepancy').length, 0);
+  const totalDisc = filteredGroups.reduce((s, [, g]) => s + g.details.filter((r) => r.st === STATUS_DISCREPANCY).length, 0);
   const paginatedGroups = filteredGroups.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
   const reset = () => { setSearch(''); setSort(''); setDiscOnly(false); setExpandedEmps({}); setPage(0); };
 
@@ -156,7 +157,7 @@ export default function DetailedTab({ data, n1, n2 }) {
             {paginatedGroups.map(([id, group]) => {
               const s = group.summary;
               const isOpen = !!expandedEmps[id];
-              const hasDisc = group.details.some((r) => r.st === 'Discrepancy');
+              const hasDisc = group.details.some((r) => r.st === STATUS_DISCREPANCY);
 
               // Sort details within group: discrepancies first, then by wage type
               const sortedDetails = [...group.details].sort((a, b) => {
@@ -180,9 +181,9 @@ export default function DetailedTab({ data, n1, n2 }) {
                   onClick={() => toggleExpand(id)}
                   sx={{
                     cursor: 'pointer',
-                    bgcolor: hasDisc ? '#FFFBEB' : '#F8FAFC',
-                    '&:hover': { bgcolor: hasDisc ? '#FEF3C7' : '#F1F5F9' },
-                    borderLeft: hasDisc ? '4px solid #D97706' : '4px solid #4F46E5',
+                    bgcolor: hasDisc ? ROW_COLORS.summaryDisc.bg : ROW_COLORS.summary.bg,
+                    '&:hover': { bgcolor: hasDisc ? ROW_COLORS.summaryDisc.hover : ROW_COLORS.summary.hover },
+                    borderLeft: hasDisc ? `4px solid ${TABLE_COLORS.warning}` : `4px solid ${TABLE_COLORS.primary}`,
                     transition: 'background 0.15s ease',
                   }}
                 >
@@ -247,8 +248,8 @@ export default function DetailedTab({ data, n1, n2 }) {
                             <TableRow
                               key={`${r.id}-${r.wt}-${i}`}
                               sx={{
-                                bgcolor: r.st === 'Discrepancy' ? '#FFFBEB' : '#FAFAFA',
-                                '&:hover': { bgcolor: r.st === 'Discrepancy' ? '#FEF3C7' : '#F1F5F9' },
+                                bgcolor: r.st === STATUS_DISCREPANCY ? ROW_COLORS.discrepancy.bg : ROW_COLORS.detail.bg,
+                                '&:hover': { bgcolor: r.st === STATUS_DISCREPANCY ? ROW_COLORS.discrepancy.hover : ROW_COLORS.detail.hover },
                                 transition: 'background 0.15s ease',
                               }}
                             >
@@ -313,7 +314,7 @@ export default function DetailedTab({ data, n1, n2 }) {
         onPageChange={(_, p) => setPage(p)}
         rowsPerPage={rowsPerPage}
         onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-        rowsPerPageOptions={[50, 100, 250, 500]}
+        rowsPerPageOptions={ROWS_PER_PAGE_OPTIONS}
         labelRowsPerPage="Employees per page:"
       />
     </Box>
@@ -321,7 +322,7 @@ export default function DetailedTab({ data, n1, n2 }) {
 }
 
 const hStyle = {
-  bgcolor: '#4F46E5',
+  bgcolor: TABLE_COLORS.primary,
   color: 'white',
   fontWeight: 700,
   fontSize: 12,

@@ -13,6 +13,12 @@ import Footer from './components/Footer';
 import UserGuide from './components/UserGuide';
 import { parseExcel, parseFilterFile, exportToExcel } from './utils/payrollEngine';
 import { runAnalysisInWorker } from './utils/analysisWorker';
+import {
+  DEFAULT_PERIOD_1, DEFAULT_PERIOD_2, DEFAULT_VARIANCE_THRESHOLD,
+  SNACKBAR_DURATION, EXPORT_DELAY, COL_MULTIPLIER,
+  LABEL_559, LABEL_101, LABEL_559_FULL, LABEL_101_FULL,
+  APP_NAME,
+} from './config';
 
 /* ─── Figma-Style Design Tokens ──────────────────────────────────────────── */
 const theme = createTheme({
@@ -123,14 +129,14 @@ export const glassStyle = {
 };
 
 export default function App() {
-  const [p1Name, setP1Name] = useState('Jan 2026');
-  const [p2Name, setP2Name] = useState('Dec 2025');
+  const [p1Name, setP1Name] = useState(DEFAULT_PERIOD_1);
+  const [p2Name, setP2Name] = useState(DEFAULT_PERIOD_2);
   const [d1, setD1] = useState(null);
   const [d2, setD2] = useState(null);
   const [filterData, setFilterData] = useState(null);
   const [wtCols, setWtCols] = useState({ earn: [], ded: [], all: [] });
   const [multipliers, setMultipliers] = useState({});
-  const [threshold, setThreshold] = useState(5.0);
+  const [threshold, setThreshold] = useState(DEFAULT_VARIANCE_THRESHOLD);
   const [results, setResults] = useState(null);
   const [analysisMode, setAnalysisMode] = useState('559');
   const [loading, setLoading] = useState(false);
@@ -182,9 +188,9 @@ export default function App() {
         text: `${result.wtCols.earn.length} earnings, ${result.wtCols.ded.length} deductions, ${result.df.n.length} net pay`,
       });
       if (!result.hasMultiplierColumn) {
-        setMultiplierStatus({ type: 'warning', text: '"Amount Multiplied By" column not found. All amounts used as-is (x1).' });
+        setMultiplierStatus({ type: 'warning', text: `"${COL_MULTIPLIER}" column not found. All amounts used as-is (x1).` });
       } else {
-        setMultiplierStatus({ type: 'success', text: 'Using "Amount Multiplied By" values from filter file.' });
+        setMultiplierStatus({ type: 'success', text: `Using "${COL_MULTIPLIER}" values from filter file.` });
       }
       showSnackbar('Wage type filter loaded', 'success');
     } catch (err) {
@@ -231,7 +237,7 @@ export default function App() {
         showSnackbar('Export error: ' + err.message, 'error');
       }
       setExportLoading(false);
-    }, 100);
+    }, EXPORT_DELAY);
   }, [results, p1Name, p2Name, wtCols]);
 
   const n1 = p1Name || 'Period 1';
@@ -316,11 +322,11 @@ export default function App() {
                 >
                   <ToggleButton value="559">
                     <AccountBalanceWalletIcon sx={{ mr: 1 }} fontSize="small" />
-                    /559 Net Pay
+                    {LABEL_559} Net Pay
                   </ToggleButton>
                   <ToggleButton value="101">
                     <AccountBalanceIcon sx={{ mr: 1 }} fontSize="small" />
-                    /101 Gross Pay
+                    {LABEL_101} Gross Pay
                   </ToggleButton>
                 </ToggleButtonGroup>
               </Box>
@@ -331,8 +337,8 @@ export default function App() {
                 removed={results.removed}
                 added={results.added}
                 detailed={results.detailed}
-                wageTypeLabel={analysisMode === '101' ? '/101' : '/559'}
-                wageTypeName={analysisMode === '101' ? 'Gross amount' : 'Transfer to bank'}
+                wageTypeLabel={analysisMode === '101' ? LABEL_101 : LABEL_559}
+                wageTypeName={analysisMode === '101' ? LABEL_101_FULL : LABEL_559_FULL}
               />
               <TabContainer
                 results={results}
@@ -340,8 +346,8 @@ export default function App() {
                 n1={n1}
                 n2={n2}
                 d1={d1}
-                wageTypeLabel={analysisMode === '101' ? '/101' : '/559'}
-                wageTypeName={analysisMode === '101' ? 'Gross amount' : 'Transfer to bank'}
+                wageTypeLabel={analysisMode === '101' ? LABEL_101 : LABEL_559}
+                wageTypeName={analysisMode === '101' ? LABEL_101_FULL : LABEL_559_FULL}
               />
             </>
           )}
@@ -375,7 +381,7 @@ export default function App() {
 
       <Snackbar
         open={snackbar.open}
-        autoHideDuration={4000}
+        autoHideDuration={SNACKBAR_DURATION}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >

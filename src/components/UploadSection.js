@@ -5,15 +5,16 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import { useRef } from 'react';
 import { glassStyle } from '../App';
+import { MAX_FILE_SIZE, STEP_COLORS, FILE_ACCEPT, FILE_ACCEPT_LABEL, LABEL_PERIOD_1, LABEL_PERIOD_2, LABEL_FILTER, LABEL_FILTER_SUBTITLE } from '../config';
 
-const stepColors = ['#4F46E5', '#7C3AED', '#0891B2'];
+const stepColors = STEP_COLORS;
 
 function FileUploadCard({ title, subtitle, nameValue, onNameChange, onFileSelect, status, step, extra }) {
   const fileRef = useRef();
   const color = stepColors[(step || 1) - 1];
   const handleFile = (file) => {
     if (!file) return;
-    if (file.size > 50 * 1024 * 1024) {
+    if (file.size > MAX_FILE_SIZE) {
       onFileSelect(null);
       return;
     }
@@ -97,12 +98,12 @@ function FileUploadCard({ title, subtitle, nameValue, onNameChange, onFileSelect
           },
         }}
       >
-        Choose File (.xlsx, .csv, .txt)
+        {FILE_ACCEPT_LABEL}
       </Button>
       <input
         ref={fileRef}
         type="file"
-        accept=".xlsx,.xls,.csv,.txt,.tsv"
+        accept={FILE_ACCEPT}
         hidden
         onChange={(e) => handleFile(e.target.files[0])}
       />
@@ -175,7 +176,7 @@ export default function UploadSection({
           <Grid item xs={12} md={4}>
             <FileUploadCard
               step={1}
-              title="Period 1 (Current - Most Recent)"
+              title={LABEL_PERIOD_1}
               nameValue={p1Name}
               onNameChange={setP1Name}
               onFileSelect={onLoadP1}
@@ -185,7 +186,7 @@ export default function UploadSection({
           <Grid item xs={12} md={4}>
             <FileUploadCard
               step={2}
-              title="Period 2 (Previous)"
+              title={LABEL_PERIOD_2}
               nameValue={p2Name}
               onNameChange={setP2Name}
               onFileSelect={onLoadP2}
@@ -195,8 +196,8 @@ export default function UploadSection({
           <Grid item xs={12} md={4}>
             <FileUploadCard
               step={3}
-              title="Wage Type Filter (Optional)"
-              subtitle="Columns: Componenet Type, Wage Type Long Text, Amount Multiplied By"
+              title={LABEL_FILTER}
+              subtitle={LABEL_FILTER_SUBTITLE}
               onFileSelect={onLoadFilter}
               status={statusFilter}
               extra={

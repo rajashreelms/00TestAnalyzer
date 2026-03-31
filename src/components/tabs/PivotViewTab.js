@@ -5,12 +5,13 @@ import {
 } from '@mui/material';
 import { fmt } from '../../utils/payrollEngine';
 import Toolbar from '../Toolbar';
+import { DEFAULT_ROWS_PER_PAGE, ROWS_PER_PAGE_OPTIONS, TABLE_COLORS } from '../../config';
 
 export default function PivotViewTab({ data, n1 }) {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('');
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(100);
+  const [rowsPerPage, setRowsPerPage] = useState(DEFAULT_ROWS_PER_PAGE);
 
   // Build pivot: { employees[], wageTypes[], matrix: { empId: { wt: amount } } }
   const pivot = useMemo(() => {
@@ -118,14 +119,14 @@ export default function PivotViewTab({ data, n1 }) {
               {pivot.wageTypes.map((wt) => (
                 <TableCell
                   key={wt.name}
-                  sx={{ ...hStyle, bgcolor: '#7C3AED', minWidth: 90 }}
+                  sx={{ ...hStyle, bgcolor: TABLE_COLORS.pivot, minWidth: 90 }}
                   align="right"
                   title={`${wt.code ? '/' + wt.code + ' - ' : ''}${wt.name}`}
                 >
                   {wt.code ? `/${wt.code}` : ''}{'\n'}{wt.name.length > 14 ? wt.name.substring(0, 12) + '...' : wt.name}
                 </TableCell>
               ))}
-              <TableCell sx={{ ...hStyle, bgcolor: '#4F46E5' }} align="right">Total</TableCell>
+              <TableCell sx={{ ...hStyle, bgcolor: TABLE_COLORS.primary }} align="right">Total</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -171,14 +172,14 @@ export default function PivotViewTab({ data, n1 }) {
         onPageChange={(_, p) => setPage(p)}
         rowsPerPage={rowsPerPage}
         onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
-        rowsPerPageOptions={[50, 100, 250, 500]}
+        rowsPerPageOptions={ROWS_PER_PAGE_OPTIONS}
       />
     </Box>
   );
 }
 
 const hStyle = {
-  bgcolor: '#4F46E5',
+  bgcolor: TABLE_COLORS.primary,
   color: 'white',
   fontWeight: 700,
   fontSize: 11,

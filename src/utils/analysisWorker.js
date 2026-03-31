@@ -122,7 +122,7 @@ function calcNetForWT(targetWT, p1, p2, all1, all2, threshold, df, wtCols, multi
       });
     }
 
-    const varReconDiff = hasFilter ? v - (p1gross - p2gross) : 0;
+    const varReconDiff = hasFilter ? v - (p1ReconDiff - p2ReconDiff) : 0;
 
     const wtBreakdown = [];
     let chg = 0;
