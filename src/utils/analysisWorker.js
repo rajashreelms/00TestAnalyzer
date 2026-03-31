@@ -24,10 +24,20 @@ function sumRecords(data) {
     const id = String(r.ID).trim();
     const wt = (r['Wage Type Long Text'] || '').trim();
     const k = id + '|||' + wt;
-    if (!g[k]) g[k] = { ID: id, Name: r.Name, 'Wage Type Long Text': wt, Amount: 0 };
+    if (!g[k]) g[k] = { ID: id, Name: r.Name, 'Wage Type Long Text': wt, 'Wage Type': r['Wage Type'] || '', Amount: 0 };
     g[k].Amount += parseNum(r.Amount);
   });
   return Object.values(g);
+}
+
+function buildWTCodeMap(data) {
+  const map = {};
+  data.forEach((r) => {
+    const wt = (r['Wage Type Long Text'] || '').trim();
+    const code = r['Wage Type'] !== undefined && r['Wage Type'] !== null ? String(r['Wage Type']).trim() : '';
+    if (wt && code && !map[wt]) map[wt] = code;
+  });
+  return map;
 }
 
 function groupById(data) {
@@ -60,7 +70,7 @@ function getComponentType(wt, df) {
   return 'Other';
 }
 
-function calcNetForWT(targetWT, p1, p2, all1, all2, threshold, df, wtCols, multipliers) {
+function calcNetForWT(targetWT, p1, p2, all1, all2, threshold, df, wtCols, multipliers, wtCodeMap, earningsOnlyRecon) {
   const g1 = groupById(p1);
   const g2 = groupById(p2);
   const gAll1 = groupById(all1);
@@ -68,6 +78,7 @@ function calcNetForWT(targetWT, p1, p2, all1, all2, threshold, df, wtCols, multi
   const active = [];
   const zeroPay = [];
   const hasFilter = df && df.a.length > 0;
+  const reconWTs = hasFilter ? (earningsOnlyRecon ? wtCols.earn : wtCols.all) : [];
 
   const ids = new Set([...Object.keys(gAll1), ...Object.keys(gAll2)]);
 
@@ -85,7 +96,7 @@ function calcNetForWT(targetWT, p1, p2, all1, all2, threshold, df, wtCols, multi
 
     let p1gross = 0, p2gross = 0;
     if (hasFilter) {
-      wtCols.all.forEach((wt) => {
+      reconWTs.forEach((wt) => {
         p1gross += getWTAmt(e1, wt, multipliers);
         p2gross += getWTAmt(e2, wt, multipliers);
       });
@@ -122,7 +133,7 @@ function calcNetForWT(targetWT, p1, p2, all1, all2, threshold, df, wtCols, multi
         if (a1 !== 0 || a2 !== 0) {
           const diff = a1 - a2;
           const compType = getComponentType(wt, df);
-          wtBreakdown.push({ name: wt, p1amt: a1, p2amt: a2, diff, compType });
+          wtBreakdown.push({ name: wt, wtCode: wtCodeMap[wt] || '', p1amt: a1, p2amt: a2, diff, compType });
           if (a1 !== 0 && a2 !== 0) chg++;
         }
       });
@@ -143,7 +154,7 @@ function calcNetForWT(targetWT, p1, p2, all1, all2, threshold, df, wtCols, multi
   return { active, zeroPay };
 }
 
-function calcDetailed(p1, p2, threshold, multipliers, df) {
+function calcDetailed(p1, p2, threshold, multipliers, df, wtCodeMap) {
   const g1 = groupById(p1);
   const g2 = groupById(p2);
   const detMap = {};
@@ -175,7 +186,7 @@ function calcDetailed(p1, p2, threshold, multipliers, df) {
       empTotalA2 += a2;
 
       const row = {
-        id, nm, wt, mult, a1, a2, v, vp, compType,
+        id, nm, wt, wtCode: wtCodeMap[wt] || '', mult, a1, a2, v, vp, compType,
         st: Math.abs(vp) > threshold ? 'Discrepancy' : 'Approved',
         isGroupHeader: false,
       };
@@ -188,7 +199,7 @@ function calcDetailed(p1, p2, threshold, multipliers, df) {
       const empTotalVp = empTotalA2 ? (empTotalV / empTotalA2) * 100 : (empTotalA1 !== 0 ? 100 : 0);
       detMap[id + '__SUMMARY'] = {
         id, nm, wt: '-- TOTAL (' + empWtRows.length + ' wage types) --',
-        mult: '', a1: empTotalA1, a2: empTotalA2, v: empTotalV, vp: empTotalVp,
+        wtCode: '', mult: '', a1: empTotalA1, a2: empTotalA2, v: empTotalV, vp: empTotalVp,
         compType: 'Summary',
         st: Math.abs(empTotalVp) > threshold ? 'Discrepancy' : 'Approved',
         isGroupHeader: true,
@@ -210,7 +221,7 @@ function calcDetailed(p1, p2, threshold, multipliers, df) {
   return rows;
 }
 
-function calcWTChanges(p1, p2, multipliers, df) {
+function calcWTChanges(p1, p2, multipliers, df, wtCodeMap) {
   const removed = [];
   const added = [];
   const g1 = groupById(p1);
@@ -231,7 +242,7 @@ function calcWTChanges(p1, p2, multipliers, df) {
         const mult = multipliers[wt] !== undefined ? multipliers[wt] : 1;
         const impact = amt * mult;
         removed.push({
-          id, nm: empName, wt, compType: getComponentType(wt, df),
+          id, nm: empName, wt, wtCode: wtCodeMap[wt] || '', compType: getComponentType(wt, df),
           p2amt: amt, mult, impact,
           note: impact > 0 ? 'Earning removed - reduces income' :
                 impact < 0 ? 'Deduction removed - increases income' :
@@ -247,7 +258,7 @@ function calcWTChanges(p1, p2, multipliers, df) {
         const mult = multipliers[wt] !== undefined ? multipliers[wt] : 1;
         const impact = amt * mult;
         added.push({
-          id, nm: empName, wt, compType: getComponentType(wt, df),
+          id, nm: empName, wt, wtCode: wtCodeMap[wt] || '', compType: getComponentType(wt, df),
           p1amt: amt, mult, impact,
           note: impact > 0 ? 'New earning added - increases income' :
                 impact < 0 ? 'New deduction added - reduces income' :
@@ -261,6 +272,8 @@ function calcWTChanges(p1, p2, multipliers, df) {
 }
 
 function analyze(d1Raw, d2Raw, threshold, df, wtCols, multipliers) {
+  const wtCodeMap = { ...buildWTCodeMap(d1Raw), ...buildWTCodeMap(d2Raw) };
+
   const all1 = sumRecords(d1Raw);
   const all2 = sumRecords(d2Raw);
 
@@ -268,11 +281,11 @@ function analyze(d1Raw, d2Raw, threshold, df, wtCols, multipliers) {
   let p1 = filterWTs.length ? all1.filter((r) => filterWTs.includes(r['Wage Type Long Text'])) : all1;
   let p2 = filterWTs.length ? all2.filter((r) => filterWTs.includes(r['Wage Type Long Text'])) : all2;
 
-  const net559 = calcNetForWT(NET_PAY_WT, p1, p2, all1, all2, threshold, df, wtCols, multipliers);
-  const net101 = calcNetForWT(GROSS_WT, p1, p2, all1, all2, threshold, df, wtCols, multipliers);
+  const net559 = calcNetForWT(NET_PAY_WT, p1, p2, all1, all2, threshold, df, wtCols, multipliers, wtCodeMap, false);
+  const net101 = calcNetForWT(GROSS_WT, p1, p2, all1, all2, threshold, df, wtCols, multipliers, wtCodeMap, true);
 
-  const detailed = calcDetailed(p1, p2, threshold, multipliers, df);
-  const wtChanges = calcWTChanges(p1, p2, multipliers, df);
+  const detailed = calcDetailed(p1, p2, threshold, multipliers, df, wtCodeMap);
+  const wtChanges = calcWTChanges(p1, p2, multipliers, df, wtCodeMap);
 
   return {
     active: net559.active,
@@ -282,6 +295,7 @@ function analyze(d1Raw, d2Raw, threshold, df, wtCols, multipliers) {
     detailed,
     removed: wtChanges.removed,
     added: wtChanges.added,
+    wtCodeMap,
   };
 }
 

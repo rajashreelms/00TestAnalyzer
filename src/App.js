@@ -224,7 +224,7 @@ export default function App() {
     setTimeout(() => {
       try {
         exportToExcel(results.active, results.zeroPay, results.detailed, results.removed, results.added,
-          p1Name || 'Period 1', p2Name || 'Period 2', wtCols, results.active101, results.zeroPay101);
+          p1Name || 'Period 1', p2Name || 'Period 2', wtCols, results.active101, results.zeroPay101, results.wtCodeMap);
         showSnackbar('Excel file exported successfully', 'success');
       } catch (err) {
         console.error('Export error:', err);
@@ -339,6 +339,7 @@ export default function App() {
                 wtCols={wtCols}
                 n1={n1}
                 n2={n2}
+                d1={d1}
                 wageTypeLabel={analysisMode === '101' ? '/101' : '/559'}
                 wageTypeName={analysisMode === '101' ? 'Gross amount' : 'Transfer to bank'}
               />

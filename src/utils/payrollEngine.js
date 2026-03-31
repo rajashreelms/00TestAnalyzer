@@ -53,6 +53,8 @@ const COLUMN_MAP = {
   'Employee Name': 'Name', 'employee name': 'Name', 'Emp Name': 'Name', 'EmpName': 'Name',
   'Component Type': 'Componenet Type', 'component type': 'Componenet Type',
   'Componenet Type': 'Componenet Type',
+  'wage type': 'Wage Type', 'WT': 'Wage Type', 'Wage type': 'Wage Type',
+  'wage type long text': 'Wage Type Long Text',
 };
 
 function normalizeColumns(json) {
@@ -95,6 +97,7 @@ export function parseFilterFile(json) {
   const df = { e: [], d: [], n: [], a: [] };
   const wtCols = { earn: [], ded: [], all: [] };
   const multipliers = {};
+  const wtCodeMap = {}; // WT Long Text → WT short code from filter file
   const hasMultiplierColumn = 'Amount Multiplied By' in (json[0] || {});
 
   json.forEach((r) => {
@@ -103,6 +106,9 @@ export function parseFilterFile(json) {
     if (!wt) return;
     df.a.push(wt);
     wtCols.all.push(wt);
+    // Capture WT code if available
+    const code = r['Wage Type'] !== undefined && r['Wage Type'] !== null ? String(r['Wage Type']).trim() : '';
+    if (code) wtCodeMap[wt] = code;
     let mult = 1;
     if (hasMultiplierColumn) {
       const multVal = r['Amount Multiplied By'];
@@ -116,7 +122,7 @@ export function parseFilterFile(json) {
     else if (c === 'Net Pay') df.n.push(wt);
   });
 
-  return { df, wtCols, multipliers, hasMultiplierColumn };
+  return { df, wtCols, multipliers, hasMultiplierColumn, wtCodeMap };
 }
 
 // ─── Data helpers ──────────────────────────────────────────────────────────
@@ -127,10 +133,21 @@ function sumRecords(data) {
     const id = String(r.ID).trim();
     const wt = (r['Wage Type Long Text'] || '').trim();
     const k = `${id}|||${wt}`;
-    if (!g[k]) g[k] = { ID: id, Name: r.Name, 'Wage Type Long Text': wt, Amount: 0 };
+    if (!g[k]) g[k] = { ID: id, Name: r.Name, 'Wage Type Long Text': wt, 'Wage Type': r['Wage Type'] || '', Amount: 0 };
     g[k].Amount += parseNum(r.Amount);
   });
   return Object.values(g);
+}
+
+// Build a lookup map from Wage Type Long Text → Wage Type (short code)
+function buildWTCodeMap(data) {
+  const map = {};
+  data.forEach((r) => {
+    const wt = (r['Wage Type Long Text'] || '').trim();
+    const code = r['Wage Type'] !== undefined && r['Wage Type'] !== null ? String(r['Wage Type']).trim() : '';
+    if (wt && code && !map[wt]) map[wt] = code;
+  });
+  return map;
 }
 
 function groupById(data) {
@@ -166,6 +183,9 @@ function getComponentType(wt, df) {
 // ─── Main analysis ─────────────────────────────────────────────────────────
 
 export function analyze(d1Raw, d2Raw, threshold, df, wtCols, multipliers) {
+  // Build WT code lookup map from both periods' raw data
+  const wtCodeMap = { ...buildWTCodeMap(d1Raw), ...buildWTCodeMap(d2Raw) };
+
   // Sum ALL records (including /559, /101) for lookup
   const all1 = sumRecords(d1Raw);
   const all2 = sumRecords(d2Raw);
@@ -175,13 +195,13 @@ export function analyze(d1Raw, d2Raw, threshold, df, wtCols, multipliers) {
   let p1 = filterWTs.length ? all1.filter((r) => filterWTs.includes(r['Wage Type Long Text'])) : all1;
   let p2 = filterWTs.length ? all2.filter((r) => filterWTs.includes(r['Wage Type Long Text'])) : all2;
 
-  // /559 analysis
-  const net559 = calcNetForWT(NET_PAY_WT, p1, p2, all1, all2, threshold, df, wtCols, multipliers);
-  // /101 analysis
-  const net101 = calcNetForWT(GROSS_WT, p1, p2, all1, all2, threshold, df, wtCols, multipliers);
+  // /559 analysis (all WTs for reconciliation)
+  const net559 = calcNetForWT(NET_PAY_WT, p1, p2, all1, all2, threshold, df, wtCols, multipliers, wtCodeMap, false);
+  // /101 analysis (earnings only for reconciliation)
+  const net101 = calcNetForWT(GROSS_WT, p1, p2, all1, all2, threshold, df, wtCols, multipliers, wtCodeMap, true);
 
-  const detailed = calcDetailed(p1, p2, threshold, multipliers, df);
-  const wtChanges = calcWTChanges(p1, p2, multipliers, df);
+  const detailed = calcDetailed(p1, p2, threshold, multipliers, df, wtCodeMap);
+  const wtChanges = calcWTChanges(p1, p2, multipliers, df, wtCodeMap);
 
   return {
     active: net559.active,
@@ -191,12 +211,13 @@ export function analyze(d1Raw, d2Raw, threshold, df, wtCols, multipliers) {
     detailed,
     removed: wtChanges.removed,
     added: wtChanges.added,
+    wtCodeMap,
   };
 }
 
 // ─── Active Pay comparison (generic for any target WT: /559, /101, etc.) ──
 
-function calcNetForWT(targetWT, p1, p2, all1, all2, threshold, df, wtCols, multipliers) {
+function calcNetForWT(targetWT, p1, p2, all1, all2, threshold, df, wtCols, multipliers, wtCodeMap, earningsOnlyRecon) {
   const g1 = groupById(p1);    // filtered WTs only
   const g2 = groupById(p2);
   const gAll1 = groupById(all1); // ALL WTs (to find target WT)
@@ -204,6 +225,11 @@ function calcNetForWT(targetWT, p1, p2, all1, all2, threshold, df, wtCols, multi
   const active = [];
   const zeroPay = [];
   const hasFilter = df && df.a.length > 0;
+
+  // For /101 gross reconciliation, only use earnings WTs
+  const reconWTs = hasFilter
+    ? (earningsOnlyRecon ? wtCols.earn : wtCols.all)
+    : [];
 
   // All employee IDs from full data
   const ids = new Set([...Object.keys(gAll1), ...Object.keys(gAll2)]);
@@ -222,15 +248,16 @@ function calcNetForWT(targetWT, p1, p2, all1, all2, threshold, df, wtCols, multi
     const p2net = getRawAmt(allE2, targetWT);
 
     // Calculated gross from filter WTs (sum of amounts × multipliers)
+    // For /101: only earnings; for /559: all WTs
     let p1gross = 0, p2gross = 0;
     if (hasFilter) {
-      wtCols.all.forEach((wt) => {
+      reconWTs.forEach((wt) => {
         p1gross += getWTAmt(e1, wt, multipliers);
         p2gross += getWTAmt(e2, wt, multipliers);
       });
     }
 
-    // Reconciliation: calculated gross vs /559
+    // Reconciliation: calculated gross vs target WT
     const p1ReconDiff = hasFilter ? p1gross - p1net : 0;
     const p2ReconDiff = hasFilter ? p2gross - p2net : 0;
 
@@ -242,7 +269,7 @@ function calcNetForWT(targetWT, p1, p2, all1, all2, threshold, df, wtCols, multi
       return;
     }
 
-    // Per-WT diffs (from filter WTs)
+    // Per-WT diffs (from filter WTs — show all for column display)
     const wtDiffs = {};
     if (hasFilter) {
       wtCols.all.forEach((wt) => {
@@ -252,10 +279,10 @@ function calcNetForWT(targetWT, p1, p2, all1, all2, threshold, df, wtCols, multi
       });
     }
 
-    // Variance reconciliation: does sum of WT diffs explain the /559 variance?
+    // Variance reconciliation: does sum of recon WT diffs explain the target variance?
     const varReconDiff = hasFilter ? (p1gross - p2gross) - v : 0;
 
-    // Build structured wage type breakdown: { name, p1amt, p2amt, diff, compType }
+    // Build structured wage type breakdown: { name, wtCode, p1amt, p2amt, diff, compType }
     const wtBreakdown = [];
     let chg = 0;
     if (hasFilter) {
@@ -265,7 +292,7 @@ function calcNetForWT(targetWT, p1, p2, all1, all2, threshold, df, wtCols, multi
         if (a1 !== 0 || a2 !== 0) {
           const diff = a1 - a2;
           const compType = getComponentType(wt, df);
-          wtBreakdown.push({ name: wt, p1amt: a1, p2amt: a2, diff, compType });
+          wtBreakdown.push({ name: wt, wtCode: wtCodeMap[wt] || '', p1amt: a1, p2amt: a2, diff, compType });
           if (a1 !== 0 && a2 !== 0) chg++;
         }
       });
@@ -289,7 +316,7 @@ function calcNetForWT(targetWT, p1, p2, all1, all2, threshold, df, wtCols, multi
 
 // ─── Detailed WT breakdown (grouped by employee) ──────────────────────────
 
-function calcDetailed(p1, p2, threshold, multipliers, df) {
+function calcDetailed(p1, p2, threshold, multipliers, df, wtCodeMap) {
   const g1 = groupById(p1);
   const g2 = groupById(p2);
   const detMap = {};
@@ -321,7 +348,7 @@ function calcDetailed(p1, p2, threshold, multipliers, df) {
       empTotalA2 += a2;
 
       const row = {
-        id, nm, wt, mult, a1, a2, v, vp, compType,
+        id, nm, wt, wtCode: wtCodeMap[wt] || '', mult, a1, a2, v, vp, compType,
         st: Math.abs(vp) > threshold ? 'Discrepancy' : 'Approved',
         isGroupHeader: false,
       };
@@ -358,7 +385,7 @@ function calcDetailed(p1, p2, threshold, multipliers, df) {
 
 // ─── WT Changes (removed / added) ─────────────────────────────────────────
 
-function calcWTChanges(p1, p2, multipliers, df) {
+function calcWTChanges(p1, p2, multipliers, df, wtCodeMap) {
   const removed = [];
   const added = [];
   const g1 = groupById(p1);
@@ -379,7 +406,7 @@ function calcWTChanges(p1, p2, multipliers, df) {
         const mult = multipliers[wt] !== undefined ? multipliers[wt] : 1;
         const impact = amt * mult;
         removed.push({
-          id, nm: empName, wt, compType: getComponentType(wt, df),
+          id, nm: empName, wt, wtCode: wtCodeMap[wt] || '', compType: getComponentType(wt, df),
           p2amt: amt, mult, impact,
           note: impact > 0 ? 'Earning removed - reduces income' :
                 impact < 0 ? 'Deduction removed - increases income' :
@@ -395,7 +422,7 @@ function calcWTChanges(p1, p2, multipliers, df) {
         const mult = multipliers[wt] !== undefined ? multipliers[wt] : 1;
         const impact = amt * mult;
         added.push({
-          id, nm: empName, wt, compType: getComponentType(wt, df),
+          id, nm: empName, wt, wtCode: wtCodeMap[wt] || '', compType: getComponentType(wt, df),
           p1amt: amt, mult, impact,
           note: impact > 0 ? 'New earning added - increases income' :
                 impact < 0 ? 'New deduction added - reduces income' :
@@ -464,7 +491,8 @@ function setColWidths(ws, widths) {
 }
 
 
-export function exportToExcel(nd, zd, dd, rmd, add, n1, n2, wtCols, nd101, zd101) {
+export function exportToExcel(nd, zd, dd, rmd, add, n1, n2, wtCols, nd101, zd101, wtCodeMap) {
+  const wc = wtCodeMap || {};
   const wb = XLSX.utils.book_new();
 
   // ── Sheet 1: Active Net Pay ──
@@ -477,8 +505,8 @@ export function exportToExcel(nd, zd, dd, rmd, add, n1, n2, wtCols, nd101, zd101
       '/559 Variance': r.v,
       'Variance %': r.vp.toFixed(2) + '%',
     };
-    wtCols.earn.forEach((wt) => (row[`[E] ${wt}`] = r.wtDiffs[wt] || 0));
-    wtCols.ded.forEach((wt) => (row[`[D] ${wt}`] = r.wtDiffs[wt] || 0));
+    wtCols.earn.forEach((wt) => (row[`[E] ${wc[wt] ? wc[wt] + ' - ' : ''}${wt}`] = r.wtDiffs[wt] || 0));
+    wtCols.ded.forEach((wt) => (row[`[D] ${wc[wt] ? wc[wt] + ' - ' : ''}${wt}`] = r.wtDiffs[wt] || 0));
     row[`${n1} Recon (Calc-/559)`] = r.p1GrossToNetDiff;
     row[`${n2} Recon (Calc-/559)`] = r.p2GrossToNetDiff;
     row['Var Recon Diff'] = r.varReconDiff;
@@ -494,8 +522,9 @@ export function exportToExcel(nd, zd, dd, rmd, add, n1, n2, wtCols, nd101, zd101
     ];
     bd.forEach((w) => {
       const tag = w.compType === 'Earnings' ? '[E]' : w.compType === 'Deduction' ? '[D]' : '[?]';
+      const codePrefix = w.wtCode ? `/${w.wtCode} ` : '';
       const diffStr = w.diff !== 0 ? ` (diff: ${w.diff > 0 ? '+' : ''}${fmt(w.diff)})` : '';
-      lines.push(`${tag} ${w.name}: ${fmt(w.p1amt)}${diffStr}`);
+      lines.push(`${tag} ${codePrefix}${w.name}: ${fmt(w.p1amt)}${diffStr}`);
     });
     row['WT Bifurcation (Current)'] = lines.join('\n');
 
@@ -574,7 +603,7 @@ export function exportToExcel(nd, zd, dd, rmd, add, n1, n2, wtCols, nd101, zd101
       comment = `${r.compType} "${r.wt}": No change between periods. Amount: ${fmt(r.a1)}.`;
     }
     return {
-      'ID': r.id, 'Employee': r.nm, 'Wage Type': r.wt,
+      'ID': r.id, 'Employee': r.nm, 'WT Code': r.wtCode || '', 'Wage Type': r.wt,
       'Component': r.compType || '',
       'Multiplier': r.mult,
       [`${n1} (Current)`]: r.a1, [`${n2} (Previous)`]: r.a2,
@@ -585,7 +614,7 @@ export function exportToExcel(nd, zd, dd, rmd, add, n1, n2, wtCols, nd101, zd101
     };
   });
   const ws3 = XLSX.utils.json_to_sheet(de);
-  const cols3 = 12;
+  const cols3 = 13;
   styleHeader(ws3, cols3);
   styleDataCells(ws3, de, cols3, (row) => {
     if (row['Row Type'] === 'EMPLOYEE SUMMARY') {
@@ -601,7 +630,7 @@ export function exportToExcel(nd, zd, dd, rmd, add, n1, n2, wtCols, nd101, zd101
   // ── Sheet 4: Removed WT ──
   const rmComment = `[Removed WTs] Tracked wage types present in ${n2} but missing in ${n1}. Impact = amount × multiplier. Positive impact from earnings removal reduces income; negative impact from deduction removal increases income.`;
   const re = rmd.map((r) => ({
-    'ID': r.id, 'Employee': r.nm, 'Wage Type': r.wt,
+    'ID': r.id, 'Employee': r.nm, 'WT Code': r.wtCode || '', 'Wage Type': r.wt,
     'Component': r.compType,
     [`${n2} Amount`]: r.p2amt, 'Multiplier': r.mult,
     'Impact on /559': r.impact,
@@ -610,14 +639,14 @@ export function exportToExcel(nd, zd, dd, rmd, add, n1, n2, wtCols, nd101, zd101
       `${r.note}. Verify with HR/Payroll if this removal is intentional.`,
   }));
   const ws4 = XLSX.utils.json_to_sheet(re);
-  styleHeader(ws4, 8, COLORS.errorText);
-  styleDataCells(ws4, re, 8, () => ({ fill: { fgColor: { rgb: COLORS.errorBg } } }));
+  styleHeader(ws4, 9, COLORS.errorText);
+  styleDataCells(ws4, re, 9, () => ({ fill: { fgColor: { rgb: COLORS.errorBg } } }));
   XLSX.utils.book_append_sheet(wb, ws4, 'Removed WT');
 
   // ── Sheet 5: Added WT ──
   const addComment = `[New WTs] Tracked wage types present in ${n1} but absent in ${n2}. Impact = amount × multiplier. New earnings increase income; new deductions reduce income.`;
   const ae = add.map((r) => ({
-    'ID': r.id, 'Employee': r.nm, 'Wage Type': r.wt,
+    'ID': r.id, 'Employee': r.nm, 'WT Code': r.wtCode || '', 'Wage Type': r.wt,
     'Component': r.compType,
     [`${n1} Amount`]: r.p1amt, 'Multiplier': r.mult,
     'Impact on /559': r.impact,
@@ -626,8 +655,8 @@ export function exportToExcel(nd, zd, dd, rmd, add, n1, n2, wtCols, nd101, zd101
       `${r.note}. Verify correct setup with HR/Payroll.`,
   }));
   const ws5 = XLSX.utils.json_to_sheet(ae);
-  styleHeader(ws5, 8, COLORS.successText);
-  styleDataCells(ws5, ae, 8, () => ({ fill: { fgColor: { rgb: COLORS.successBg } } }));
+  styleHeader(ws5, 9, COLORS.successText);
+  styleDataCells(ws5, ae, 9, () => ({ fill: { fgColor: { rgb: COLORS.successBg } } }));
   XLSX.utils.book_append_sheet(wb, ws5, 'New WT');
 
   // ── Sheet 6: Active Gross Pay (/101) ──
@@ -642,8 +671,8 @@ export function exportToExcel(nd, zd, dd, rmd, add, n1, n2, wtCols, nd101, zd101
         '/101 Variance': r.v,
         'Variance %': r.vp.toFixed(2) + '%',
       };
-      wtCols.earn.forEach((wt) => (row[`[E] ${wt}`] = r.wtDiffs[wt] || 0));
-      wtCols.ded.forEach((wt) => (row[`[D] ${wt}`] = r.wtDiffs[wt] || 0));
+      wtCols.earn.forEach((wt) => (row[`[E] ${wc[wt] ? wc[wt] + ' - ' : ''}${wt}`] = r.wtDiffs[wt] || 0));
+      wtCols.ded.forEach((wt) => (row[`[D] ${wc[wt] ? wc[wt] + ' - ' : ''}${wt}`] = r.wtDiffs[wt] || 0));
       row[`${n1} Recon (Calc-/101)`] = r.p1GrossToNetDiff;
       row[`${n2} Recon (Calc-/101)`] = r.p2GrossToNetDiff;
       row['Var Recon Diff'] = r.varReconDiff;
