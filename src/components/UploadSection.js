@@ -88,9 +88,9 @@ export default function UploadSection({
       <Alert severity="info" icon={<InfoOutlinedIcon />} sx={{ mb: 2, borderRadius: 2 }}>
         <Typography variant="body2" component="div">
           <strong>How it works:</strong> Upload two payroll period files and a wage type filter.
-          Compares <strong>/559 (Transfer to bank)</strong> between current and previous month.
-          The WT filter file provides the bifurcation — wage types that explain /559.
-          <strong>Reconciliation:</strong> Sum of (WT amounts &times; multipliers) should equal /559.
+          Compares <strong>/559 (Transfer to bank)</strong> and <strong>/101 (Gross amount)</strong> between current and previous month.
+          The WT filter file provides the bifurcation — wage types that explain /559 and /101.
+          <strong>Reconciliation:</strong> Sum of (WT amounts &times; multipliers) should equal the target wage type.
         </Typography>
       </Alert>
 

@@ -10,7 +10,7 @@ import Toolbar from '../Toolbar';
 
 const VISIBLE_COUNT = 5; // Show top 5 wage types, collapse the rest
 
-function WTBreakdownCell({ breakdown, netPay, changes }) {
+function WTBreakdownCell({ breakdown, netPay, changes, wtLabel = '/559', wtName = 'Bank Transfer' }) {
   const [expanded, setExpanded] = useState(false);
   if (!breakdown || !breakdown.length) {
     return <Typography variant="caption" color="text.disabled">No tracked WTs</Typography>;
@@ -24,7 +24,7 @@ function WTBreakdownCell({ breakdown, netPay, changes }) {
     <Box sx={{ fontSize: 11, lineHeight: 1.5, maxWidth: 380 }}>
       {/* /559 Bank Transfer */}
       <Chip
-        label={`/559 Bank Transfer: ${fmt(netPay)}`}
+        label={`${wtLabel} ${wtName}: ${fmt(netPay)}`}
         size="small"
         color="primary"
         sx={{ mb: 0.5, fontSize: 10, height: 22, fontWeight: 700 }}
@@ -90,7 +90,7 @@ function WTBreakdownCell({ breakdown, netPay, changes }) {
   );
 }
 
-export default function ActiveNetPayTab({ data, wtCols, n1, n2 }) {
+export default function ActiveNetPayTab({ data, wtCols, n1, n2, wageTypeLabel = '/559', wageTypeName = 'Transfer to bank' }) {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('');
   const [discOnly, setDiscOnly] = useState(false);
@@ -127,12 +127,12 @@ export default function ActiveNetPayTab({ data, wtCols, n1, n2 }) {
     <Box>
       <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
         <Typography variant="body2" component="div">
-          <strong>/559 Comparison:</strong> Each row shows one employee's /559 (Transfer to bank) for {n1} vs {n2}.{' '}
+          <strong>{wageTypeLabel} Comparison:</strong> Each row shows one employee's {wageTypeLabel} ({wageTypeName}) for {n1} vs {n2}.{' '}
           <strong>Earnings columns (green headers)</strong> show the period-over-period diff for each earning wage type.{' '}
           <strong>Deduction columns (red headers)</strong> show the diff for each deduction.{' '}
-          <strong>Recon columns (brown headers)</strong> show whether Sum(WT x Multiplier) matches /559 — a recon diff near 0 means
-          the tracked wage types fully explain the bank transfer.
-          Variance % = (/559 current - /559 previous) / /559 previous x 100.
+          <strong>Recon columns (brown headers)</strong> show whether Sum(WT x Multiplier) matches {wageTypeLabel} — a recon diff near 0 means
+          the tracked wage types fully explain the {wageTypeLabel === '/101' ? 'gross amount' : 'bank transfer'}.
+          Variance % = ({wageTypeLabel} current - {wageTypeLabel} previous) / {wageTypeLabel} previous x 100.
         </Typography>
       </Alert>
 
@@ -161,9 +161,9 @@ export default function ActiveNetPayTab({ data, wtCols, n1, n2 }) {
             <TableRow>
               <TableCell sx={hStyle}>ID</TableCell>
               <TableCell sx={hStyle}>Name</TableCell>
-              <TableCell sx={hStyle} align="right">{n2}{'\n'}/559 Net Pay</TableCell>
-              <TableCell sx={hStyle} align="right">{n1}{'\n'}/559 Net Pay</TableCell>
-              <TableCell sx={hStyle} align="right">/559{'\n'}Variance</TableCell>
+              <TableCell sx={hStyle} align="right">{n2}{'\n'}{wageTypeLabel} {wageTypeLabel === '/101' ? 'Gross' : 'Net Pay'}</TableCell>
+              <TableCell sx={hStyle} align="right">{n1}{'\n'}{wageTypeLabel} {wageTypeLabel === '/101' ? 'Gross' : 'Net Pay'}</TableCell>
+              <TableCell sx={hStyle} align="right">{wageTypeLabel}{'\n'}Variance</TableCell>
               <TableCell sx={hStyle} align="right">Var %</TableCell>
               {wtCols.earn.map((wt) => (
                 <TableCell key={wt} sx={{ ...hStyle, bgcolor: '#1e8e3e' }} align="right" title={wt}>
@@ -175,9 +175,9 @@ export default function ActiveNetPayTab({ data, wtCols, n1, n2 }) {
                   {wt.length > 16 ? wt.substring(0, 14) + '...' : wt}
                 </TableCell>
               ))}
-              <TableCell sx={{ ...hStyle, bgcolor: '#6d4c00' }} align="right" title="Sum of (WT × Mult) minus /559">{n1} Recon{'\n'}(Calc - /559)</TableCell>
-              <TableCell sx={{ ...hStyle, bgcolor: '#6d4c00' }} align="right" title="Sum of (WT × Mult) minus /559">{n2} Recon{'\n'}(Calc - /559)</TableCell>
-              <TableCell sx={{ ...hStyle, bgcolor: '#6d4c00' }} align="right" title="Does WT diff explain /559 diff?">Var Recon{'\n'}Diff</TableCell>
+              <TableCell sx={{ ...hStyle, bgcolor: '#6d4c00' }} align="right" title={`Sum of (WT × Mult) minus ${wageTypeLabel}`}>{n1} Recon{'\n'}(Calc - {wageTypeLabel})</TableCell>
+              <TableCell sx={{ ...hStyle, bgcolor: '#6d4c00' }} align="right" title={`Sum of (WT × Mult) minus ${wageTypeLabel}`}>{n2} Recon{'\n'}(Calc - {wageTypeLabel})</TableCell>
+              <TableCell sx={{ ...hStyle, bgcolor: '#6d4c00' }} align="right" title={`Does WT diff explain ${wageTypeLabel} diff?`}>Var Recon{'\n'}Diff</TableCell>
               <TableCell sx={{ ...hStyle, minWidth: 340 }}>WT Bifurcation{'\n'}(Current Period)</TableCell>
               <TableCell sx={hStyle} align="center">Status</TableCell>
             </TableRow>
@@ -228,7 +228,7 @@ export default function ActiveNetPayTab({ data, wtCols, n1, n2 }) {
                   <Typography variant="body2" fontWeight={700} color={reconColor(r.varReconDiff)}>{fmt(r.varReconDiff)}</Typography>
                 </TableCell>
                 <TableCell>
-                  <WTBreakdownCell breakdown={r.wtBreakdown} netPay={r.p1net} changes={r.cc} />
+                  <WTBreakdownCell breakdown={r.wtBreakdown} netPay={r.p1net} changes={r.cc} wtLabel={wageTypeLabel} wtName={wageTypeLabel === '/101' ? 'Gross Amount' : 'Bank Transfer'} />
                 </TableCell>
                 <TableCell align="center">
                   <Chip

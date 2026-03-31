@@ -1,6 +1,8 @@
 import { useState, useCallback } from 'react';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
-import { Box, CircularProgress, Typography, Container, Snackbar, Alert } from '@mui/material';
+import { Box, CircularProgress, Typography, Container, Snackbar, Alert, ToggleButtonGroup, ToggleButton } from '@mui/material';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
 import Header from './components/Header';
 import UploadSection from './components/UploadSection';
 import Controls from './components/Controls';
@@ -53,6 +55,7 @@ export default function App() {
   const [multipliers, setMultipliers] = useState({});
   const [threshold, setThreshold] = useState(5.0);
   const [results, setResults] = useState(null);
+  const [analysisMode, setAnalysisMode] = useState('559');
   const [loading, setLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
 
@@ -137,9 +140,14 @@ export default function App() {
 
   const handleExport = useCallback(() => {
     if (!results) return;
-    exportToExcel(results.active, results.zeroPay, results.detailed, results.removed, results.added,
-      p1Name || 'Period 1', p2Name || 'Period 2', wtCols);
-    showSnackbar('Excel file exported successfully', 'success');
+    try {
+      exportToExcel(results.active, results.zeroPay, results.detailed, results.removed, results.added,
+        p1Name || 'Period 1', p2Name || 'Period 2', wtCols, results.active101, results.zeroPay101);
+      showSnackbar('Excel file exported successfully', 'success');
+    } catch (err) {
+      console.error('Export error:', err);
+      showSnackbar('Export error: ' + err.message, 'error');
+    }
   }, [results, p1Name, p2Name, wtCols]);
 
   const n1 = p1Name || 'Period 1';
@@ -182,14 +190,46 @@ export default function App() {
 
           {results && !loading && (
             <>
+              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+                <ToggleButtonGroup
+                  value={analysisMode}
+                  exclusive
+                  onChange={(_, v) => { if (v) setAnalysisMode(v); }}
+                  sx={{
+                    '& .MuiToggleButton-root': {
+                      fontWeight: 700, textTransform: 'none', px: 3, py: 1.2,
+                      '&.Mui-selected': { bgcolor: 'primary.main', color: 'white', '&:hover': { bgcolor: 'primary.dark' } },
+                    },
+                  }}
+                >
+                  <ToggleButton value="559">
+                    <AccountBalanceWalletIcon sx={{ mr: 1 }} fontSize="small" />
+                    /559 Net Pay
+                  </ToggleButton>
+                  <ToggleButton value="101">
+                    <AccountBalanceIcon sx={{ mr: 1 }} fontSize="small" />
+                    /101 Gross Pay
+                  </ToggleButton>
+                </ToggleButtonGroup>
+              </Box>
+
               <SummaryCards
-                active={results.active}
-                zeroPay={results.zeroPay}
+                active={analysisMode === '101' ? results.active101 : results.active}
+                zeroPay={analysisMode === '101' ? results.zeroPay101 : results.zeroPay}
                 removed={results.removed}
                 added={results.added}
                 detailed={results.detailed}
+                wageTypeLabel={analysisMode === '101' ? '/101' : '/559'}
+                wageTypeName={analysisMode === '101' ? 'Gross amount' : 'Transfer to bank'}
               />
-              <TabContainer results={results} wtCols={wtCols} n1={n1} n2={n2} />
+              <TabContainer
+                results={results}
+                wtCols={wtCols}
+                n1={n1}
+                n2={n2}
+                wageTypeLabel={analysisMode === '101' ? '/101' : '/559'}
+                wageTypeName={analysisMode === '101' ? 'Gross amount' : 'Transfer to bank'}
+              />
             </>
           )}
           <Footer />

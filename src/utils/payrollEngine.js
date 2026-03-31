@@ -1,14 +1,17 @@
 import * as XLSX from 'xlsx';
+import { saveAs } from 'file-saver';
 
-// ─── NET PAY CONCEPT ───────────────────────────────────────────────────────
+// ─── PAYROLL COMPARISON CONCEPT ────────────────────────────────────────────
 // /559 ("Transfer to bank") is the actual Net Pay per employee in payroll data.
-// The WT filter file lists the wage types that bifurcate/explain /559.
-// This tool compares /559 between current and previous month, then breaks down
-// which wage types from the filter file caused the variance.
-// Reconciliation: Sum of (filter WT amounts × multipliers) should equal /559.
+// /101 ("Gross amount") is the Gross Pay per employee in payroll data.
+// The WT filter file lists the wage types that bifurcate/explain these totals.
+// This tool compares /559 and /101 between current and previous month, then
+// breaks down which wage types from the filter file caused the variance.
+// Reconciliation: Sum of (filter WT amounts × multipliers) should equal the target WT.
 // ────────────────────────────────────────────────────────────────────────────
 
 const NET_PAY_WT = 'Transfer to bank'; // /559
+const GROSS_WT = 'Gross amount';       // /101
 
 export function parseExcel(file) {
   return new Promise((resolve, reject) => {
@@ -163,7 +166,7 @@ function getComponentType(wt, df) {
 // ─── Main analysis ─────────────────────────────────────────────────────────
 
 export function analyze(d1Raw, d2Raw, threshold, df, wtCols, multipliers) {
-  // Sum ALL records (including /559) for net pay lookup
+  // Sum ALL records (including /559, /101) for lookup
   const all1 = sumRecords(d1Raw);
   const all2 = sumRecords(d2Raw);
 
@@ -172,25 +175,31 @@ export function analyze(d1Raw, d2Raw, threshold, df, wtCols, multipliers) {
   let p1 = filterWTs.length ? all1.filter((r) => filterWTs.includes(r['Wage Type Long Text'])) : all1;
   let p2 = filterWTs.length ? all2.filter((r) => filterWTs.includes(r['Wage Type Long Text'])) : all2;
 
-  const netResult = calcNet(p1, p2, all1, all2, threshold, df, wtCols, multipliers);
+  // /559 analysis
+  const net559 = calcNetForWT(NET_PAY_WT, p1, p2, all1, all2, threshold, df, wtCols, multipliers);
+  // /101 analysis
+  const net101 = calcNetForWT(GROSS_WT, p1, p2, all1, all2, threshold, df, wtCols, multipliers);
+
   const detailed = calcDetailed(p1, p2, threshold, multipliers, df);
   const wtChanges = calcWTChanges(p1, p2, multipliers, df);
 
   return {
-    active: netResult.active,
-    zeroPay: netResult.zeroPay,
+    active: net559.active,
+    zeroPay: net559.zeroPay,
+    active101: net101.active,
+    zeroPay101: net101.zeroPay,
     detailed,
     removed: wtChanges.removed,
     added: wtChanges.added,
   };
 }
 
-// ─── Active Net Pay (based on /559) ────────────────────────────────────────
+// ─── Active Pay comparison (generic for any target WT: /559, /101, etc.) ──
 
-function calcNet(p1, p2, all1, all2, threshold, df, wtCols, multipliers) {
+function calcNetForWT(targetWT, p1, p2, all1, all2, threshold, df, wtCols, multipliers) {
   const g1 = groupById(p1);    // filtered WTs only
   const g2 = groupById(p2);
-  const gAll1 = groupById(all1); // ALL WTs (to find /559)
+  const gAll1 = groupById(all1); // ALL WTs (to find target WT)
   const gAll2 = groupById(all2);
   const active = [];
   const zeroPay = [];
@@ -208,9 +217,9 @@ function calcNet(p1, p2, all1, all2, threshold, df, wtCols, multipliers) {
     const e2 = g2[id] || [];
     const nm = allE1.length ? allE1[0].Name : allE2[0].Name;
 
-    // /559 Net Pay from raw data
-    const p1net = getRawAmt(allE1, NET_PAY_WT);
-    const p2net = getRawAmt(allE2, NET_PAY_WT);
+    // Target WT amount from raw data
+    const p1net = getRawAmt(allE1, targetWT);
+    const p2net = getRawAmt(allE2, targetWT);
 
     // Calculated gross from filter WTs (sum of amounts × multipliers)
     let p1gross = 0, p2gross = 0;
@@ -455,7 +464,7 @@ function setColWidths(ws, widths) {
 }
 
 
-export function exportToExcel(nd, zd, dd, rmd, add, n1, n2, wtCols) {
+export function exportToExcel(nd, zd, dd, rmd, add, n1, n2, wtCols, nd101, zd101) {
   const wb = XLSX.utils.book_new();
 
   // ── Sheet 1: Active Net Pay ──
@@ -621,7 +630,70 @@ export function exportToExcel(nd, zd, dd, rmd, add, n1, n2, wtCols) {
   styleDataCells(ws5, ae, 8, () => ({ fill: { fgColor: { rgb: COLORS.successBg } } }));
   XLSX.utils.book_append_sheet(wb, ws5, 'New WT');
 
-  // ── Sheet 6: Legend / Comments ──
+  // ── Sheet 6: Active Gross Pay (/101) ──
+  if (nd101 && nd101.length) {
+    // eslint-disable-next-line no-unused-vars
+    const gross101Comment = `[/101 Comparison] Each row = one employee. /101 (Gross amount) is compared between ${n1} and ${n2}. Status = Discrepancy if variance % exceeds threshold.`;
+    const ge = nd101.map((r) => {
+      const row = {
+        'ID': r.id, 'Employee': r.nm,
+        [`${n2} /101`]: r.p2net,
+        [`${n1} /101`]: r.p1net,
+        '/101 Variance': r.v,
+        'Variance %': r.vp.toFixed(2) + '%',
+      };
+      wtCols.earn.forEach((wt) => (row[`[E] ${wt}`] = r.wtDiffs[wt] || 0));
+      wtCols.ded.forEach((wt) => (row[`[D] ${wt}`] = r.wtDiffs[wt] || 0));
+      row[`${n1} Recon (Calc-/101)`] = r.p1GrossToNetDiff;
+      row[`${n2} Recon (Calc-/101)`] = r.p2GrossToNetDiff;
+      row['Var Recon Diff'] = r.varReconDiff;
+      row['Status'] = r.st;
+      row['Comment'] = r.st === 'Discrepancy'
+        ? `Variance of ${r.vp.toFixed(2)}% exceeds threshold. Review wage type diffs.`
+        : 'Within acceptable variance threshold.';
+      return row;
+    });
+    const wsG = XLSX.utils.json_to_sheet(ge);
+    const colsG = Object.keys(ge[0] || {}).length;
+    styleHeader(wsG, colsG);
+    const earnStartG = 6;
+    const dedStartG = earnStartG + wtCols.earn.length;
+    const reconStartG = dedStartG + wtCols.ded.length;
+    for (let c = earnStartG; c < dedStartG; c++) {
+      const addr = XLSX.utils.encode_cell({ r: 0, c });
+      if (wsG[addr]) wsG[addr].s = { ...wsG[addr].s, fill: { fgColor: { rgb: COLORS.earningBg } } };
+    }
+    for (let c = dedStartG; c < reconStartG; c++) {
+      const addr = XLSX.utils.encode_cell({ r: 0, c });
+      if (wsG[addr]) wsG[addr].s = { ...wsG[addr].s, fill: { fgColor: { rgb: COLORS.deductBg } } };
+    }
+    for (let c = reconStartG; c < reconStartG + 3; c++) {
+      const addr = XLSX.utils.encode_cell({ r: 0, c });
+      if (wsG[addr]) wsG[addr].s = { ...wsG[addr].s, fill: { fgColor: { rgb: COLORS.reconBg } } };
+    }
+    styleDataCells(wsG, ge, colsG, (row) => {
+      if (row.Status === 'Discrepancy') return { fill: { fgColor: { rgb: COLORS.discrepancyBg } } };
+      return null;
+    });
+    XLSX.utils.book_append_sheet(wb, wsG, 'Active Gross Pay 101');
+  }
+
+  // ── Sheet 7: Zero Gross Pay (/101) ──
+  if (zd101 && zd101.length) {
+    const ze101 = zd101.map((r) => ({
+      'ID': r.id, 'Employee': r.nm,
+      [`${n2} /101`]: r.p2net,
+      [`${n1} /101`]: r.p1net,
+      'Status': 'Zero Gross Pay',
+      'Comment': `Employee had /101 = ${fmt(r.p2net)} in ${n2} but 0 in ${n1}. Verify with HR.`,
+    }));
+    const wsZ101 = XLSX.utils.json_to_sheet(ze101);
+    styleHeader(wsZ101, 6, COLORS.warningBorder);
+    styleDataCells(wsZ101, ze101, 6, () => ({ fill: { fgColor: { rgb: COLORS.warningBg } } }));
+    XLSX.utils.book_append_sheet(wb, wsZ101, 'Zero Gross Pay 101');
+  }
+
+  // ── Sheet 8: Legend / Comments ──
   const legend = [
     { Section: 'Active Net Pay', Description: activeComment },
     { Section: 'Zero Pay', Description: zeroComment },
@@ -642,14 +714,17 @@ export function exportToExcel(nd, zd, dd, rmd, add, n1, n2, wtCols) {
     { Section: '', Description: '' },
     { Section: 'Key Formulas', Description: '' },
     { Section: '/559 Variance', Description: '/559 Current - /559 Previous' },
-    { Section: 'Variance %', Description: '(/559 Current - /559 Previous) / /559 Previous × 100' },
-    { Section: 'Recon (Calc - /559)', Description: 'Sum of (tracked WT amounts × multipliers) minus /559. Goal: 0' },
-    { Section: 'Impact on /559', Description: 'Amount × Multiplier — the value this WT contributes to /559' },
+    { Section: '/101 Variance', Description: '/101 Current - /101 Previous' },
+    { Section: 'Variance %', Description: '(Current - Previous) / Previous × 100' },
+    { Section: 'Recon (Calc - target)', Description: 'Sum of (tracked WT amounts × multipliers) minus target WT (/559 or /101). Goal: 0' },
+    { Section: 'Impact', Description: 'Amount × Multiplier — the value this WT contributes to the target' },
   ];
   const ws6 = XLSX.utils.json_to_sheet(legend);
   styleHeader(ws6, 2);
   setColWidths(ws6, [25, 120]);
   XLSX.utils.book_append_sheet(wb, ws6, 'Legend & Comments');
 
-  XLSX.writeFile(wb, `Payroll_Analysis_${n1.replace(/ /g, '')}_vs_${n2.replace(/ /g, '')}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+  const fileName = `Payroll_Analysis_${n1.replace(/ /g, '')}_vs_${n2.replace(/ /g, '')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+  const wbOut = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+  saveAs(new Blob([wbOut], { type: 'application/octet-stream' }), fileName);
 }

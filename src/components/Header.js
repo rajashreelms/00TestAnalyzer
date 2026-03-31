@@ -25,7 +25,7 @@ export default function Header() {
             Payroll Variance Analysis
           </Typography>
           <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>
-            /559 Comparison | WT Bifurcation | Sort &amp; Search | WT Change Tracking | Reconciliation
+            /559 Comparison | /101 Comparison | WT Bifurcation | Sort &amp; Search | WT Change Tracking | Reconciliation
           </Typography>
         </Box>
       </Box>

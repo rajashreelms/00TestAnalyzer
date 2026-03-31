@@ -15,11 +15,14 @@ function TabPanel({ children, value, index }) {
   return value === index ? <Box sx={{ p: 3 }}>{children}</Box> : null;
 }
 
-export default function TabContainer({ results, wtCols, n1, n2 }) {
+export default function TabContainer({ results, wtCols, n1, n2, wageTypeLabel = '/559', wageTypeName = 'Transfer to bank' }) {
   const [tab, setTab] = useState(0);
 
-  const discCount = results.active.filter((r) => r.st === 'Discrepancy').length;
-  const critCount = results.active.filter((r) => Math.abs(r.vp) > 10).length;
+  const activeData = wageTypeLabel === '/101' ? results.active101 : results.active;
+  const zeroData = wageTypeLabel === '/101' ? results.zeroPay101 : results.zeroPay;
+
+  const discCount = activeData.filter((r) => r.st === 'Discrepancy').length;
+  const critCount = activeData.filter((r) => Math.abs(r.vp) > 10).length;
 
   return (
     <Box>
@@ -27,22 +30,24 @@ export default function TabContainer({ results, wtCols, n1, n2 }) {
       <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
         <Typography variant="body2" component="div">
           <strong>Analysis Summary ({n1} vs {n2}):</strong>{' '}
-          Compared /559 (Transfer to bank) for <strong>{results.active.length + results.zeroPay.length}</strong> employees.{' '}
+          Compared {wageTypeLabel} ({wageTypeName}) for <strong>{activeData.length + zeroData.length}</strong> employees.{' '}
           {discCount > 0
-            ? <><strong>{discCount}</strong> employee(s) have /559 variance exceeding threshold. </>
+            ? <><strong>{discCount}</strong> employee(s) have {wageTypeLabel} variance exceeding threshold. </>
             : 'All employees within variance threshold. '
           }
           {critCount > 0 && <><strong>{critCount}</strong> are critical (&gt;10% variance). </>}
-          {results.zeroPay.length > 0 && <><strong>{results.zeroPay.length}</strong> employee(s) have zero /559 in {n1}. </>}
+          {zeroData.length > 0 && <><strong>{zeroData.length}</strong> employee(s) have zero {wageTypeLabel} in {n1}. </>}
           {results.removed.length > 0 && <><strong>{results.removed.length}</strong> tracked wage type(s) were removed. </>}
           {results.added.length > 0 && <><strong>{results.added.length}</strong> new tracked wage type(s) were added. </>}
         </Typography>
       </Alert>
 
-      {results.zeroPay.length > 0 && (
+      {zeroData.length > 0 && (
         <Alert severity="warning" sx={{ mb: 1.5, borderRadius: 2 }}>
-          <strong>{results.zeroPay.length} employee(s)</strong> have /559 = 0 in {n1}.
-          These employees received no bank transfer in the current period — possible leave, suspension, or pending adjustment.
+          <strong>{zeroData.length} employee(s)</strong> have {wageTypeLabel} = 0 in {n1}.
+          {wageTypeLabel === '/559'
+            ? ' These employees received no bank transfer in the current period — possible leave, suspension, or pending adjustment.'
+            : ' These employees have zero gross amount in the current period — verify with HR/Payroll.'}
         </Alert>
       )}
       {results.removed.length > 0 && (
@@ -73,17 +78,17 @@ export default function TabContainer({ results, wtCols, n1, n2 }) {
           <Tab
             icon={<AccountBalanceWalletIcon fontSize="small" />}
             iconPosition="start"
-            label="Active Net Pay (/559)"
+            label={wageTypeLabel === '/101' ? 'Active Gross Pay (/101)' : 'Active Net Pay (/559)'}
           />
           <Tab
             icon={
-              <Badge badgeContent={results.zeroPay.length} color="warning" max={999}>
+              <Badge badgeContent={zeroData.length} color="warning" max={999}>
                 <BlockIcon fontSize="small" />
               </Badge>
             }
             iconPosition="start"
-            label="Zero Pay"
-            sx={{ color: results.zeroPay.length ? 'warning.main' : undefined }}
+            label={wageTypeLabel === '/101' ? 'Zero Gross Pay' : 'Zero Pay'}
+            sx={{ color: zeroData.length ? 'warning.main' : undefined }}
           />
           <Tab
             icon={<ListAltIcon fontSize="small" />}
@@ -113,10 +118,10 @@ export default function TabContainer({ results, wtCols, n1, n2 }) {
         </Tabs>
 
         <TabPanel value={tab} index={0}>
-          <ActiveNetPayTab data={results.active} wtCols={wtCols} n1={n1} n2={n2} />
+          <ActiveNetPayTab data={activeData} wtCols={wtCols} n1={n1} n2={n2} wageTypeLabel={wageTypeLabel} wageTypeName={wageTypeName} />
         </TabPanel>
         <TabPanel value={tab} index={1}>
-          <ZeroPayTab data={results.zeroPay} n1={n1} n2={n2} />
+          <ZeroPayTab data={zeroData} n1={n1} n2={n2} wageTypeLabel={wageTypeLabel} wageTypeName={wageTypeName} />
         </TabPanel>
         <TabPanel value={tab} index={2}>
           <DetailedTab data={results.detailed} n1={n1} n2={n2} />

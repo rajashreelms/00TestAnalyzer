@@ -6,7 +6,7 @@ import {
 import { fmt } from '../../utils/payrollEngine';
 import Toolbar from '../Toolbar';
 
-export default function ZeroPayTab({ data }) {
+export default function ZeroPayTab({ data, n1, n2, wageTypeLabel = '/559', wageTypeName = 'Transfer to bank' }) {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('');
 
@@ -33,9 +33,9 @@ export default function ZeroPayTab({ data }) {
     <Box>
       <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
         <Typography variant="body2" component="div">
-          <strong>Zero /559 Employees:</strong> These employees have /559 (Transfer to bank) = 0 in the current period.{' '}
+          <strong>Zero {wageTypeLabel} Employees:</strong> These employees have {wageTypeLabel} ({wageTypeName}) = 0 in the current period.{' '}
           <strong>Possible reasons:</strong> Employee on leave, suspended, terminated, salary adjustment pending, or payroll error.{' '}
-          The "Previous Net Pay" column shows their /559 from the previous period for comparison.{' '}
+          The "Previous {wageTypeLabel === '/101' ? 'Gross Pay' : 'Net Pay'}" column shows their {wageTypeLabel} from the previous period for comparison.{' '}
           <strong>Action required:</strong> Verify each case with HR/Payroll to confirm the zero payment is intentional.
         </Typography>
       </Alert>
@@ -60,8 +60,8 @@ export default function ZeroPayTab({ data }) {
             <TableRow>
               <TableCell sx={hStyle}>ID</TableCell>
               <TableCell sx={hStyle}>Employee Name</TableCell>
-              <TableCell sx={hStyle} align="right">Previous Net Pay</TableCell>
-              <TableCell sx={hStyle} align="right">Current Net Pay</TableCell>
+              <TableCell sx={hStyle} align="right">Previous {wageTypeLabel === '/101' ? 'Gross Pay' : 'Net Pay'}</TableCell>
+              <TableCell sx={hStyle} align="right">Current {wageTypeLabel === '/101' ? 'Gross Pay' : 'Net Pay'}</TableCell>
               <TableCell sx={hStyle}>Reason / Notes</TableCell>
             </TableRow>
           </TableHead>
