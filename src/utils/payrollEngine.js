@@ -505,8 +505,8 @@ export function exportToExcel(nd, zd, dd, rmd, add, n1, n2, wtCols, nd101, zd101
       '/559 Variance': r.v,
       'Variance %': r.vp.toFixed(2) + '%',
     };
-    wtCols.earn.forEach((wt) => (row[`[E] ${wc[wt] ? wc[wt] + ' - ' : ''}${wt}`] = r.wtDiffs[wt] || 0));
-    wtCols.ded.forEach((wt) => (row[`[D] ${wc[wt] ? wc[wt] + ' - ' : ''}${wt}`] = r.wtDiffs[wt] || 0));
+    wtCols.earn.forEach((wt) => (row[`[E] ${wc[wt] ? wc[wt] + ' : ' : ''}${wt}`] = r.wtDiffs[wt] || 0));
+    wtCols.ded.forEach((wt) => (row[`[D] ${wc[wt] ? wc[wt] + ' : ' : ''}${wt}`] = r.wtDiffs[wt] || 0));
     row[`${n1} Recon (Calc-/559)`] = r.p1GrossToNetDiff;
     row[`${n2} Recon (Calc-/559)`] = r.p2GrossToNetDiff;
     row['Var Recon Diff'] = r.varReconDiff;
@@ -671,8 +671,8 @@ export function exportToExcel(nd, zd, dd, rmd, add, n1, n2, wtCols, nd101, zd101
         '/101 Variance': r.v,
         'Variance %': r.vp.toFixed(2) + '%',
       };
-      wtCols.earn.forEach((wt) => (row[`[E] ${wc[wt] ? wc[wt] + ' - ' : ''}${wt}`] = r.wtDiffs[wt] || 0));
-      wtCols.ded.forEach((wt) => (row[`[D] ${wc[wt] ? wc[wt] + ' - ' : ''}${wt}`] = r.wtDiffs[wt] || 0));
+      wtCols.earn.forEach((wt) => (row[`[E] ${wc[wt] ? wc[wt] + ' : ' : ''}${wt}`] = r.wtDiffs[wt] || 0));
+      wtCols.ded.forEach((wt) => (row[`[D] ${wc[wt] ? wc[wt] + ' : ' : ''}${wt}`] = r.wtDiffs[wt] || 0));
       row[`${n1} Recon (Calc-/101)`] = r.p1GrossToNetDiff;
       row[`${n2} Recon (Calc-/101)`] = r.p2GrossToNetDiff;
       row['Var Recon Diff'] = r.varReconDiff;

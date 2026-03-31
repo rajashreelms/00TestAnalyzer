@@ -170,16 +170,24 @@ export default function ActiveNetPayTab({ data, wtCols, n1, n2, wageTypeLabel = 
               <TableCell sx={hStyle} align="right">{n1}{'\n'}{wageTypeLabel} {wageTypeLabel === '/101' ? 'Gross' : 'Net Pay'}</TableCell>
               <TableCell sx={hStyle} align="right">{wageTypeLabel}{'\n'}Variance</TableCell>
               <TableCell sx={hStyle} align="right">Var %</TableCell>
-              {wtCols.earn.map((wt) => (
-                <TableCell key={wt} sx={{ ...hStyle, bgcolor: '#059669' }} align="right" title={`${wtCodeMap[wt] ? '/' + wtCodeMap[wt] + ' - ' : ''}${wt}`}>
-                  {wtCodeMap[wt] ? `/${wtCodeMap[wt]} ` : ''}{wt.length > 16 ? wt.substring(0, 14) + '...' : wt}
-                </TableCell>
-              ))}
-              {wtCols.ded.map((wt) => (
-                <TableCell key={wt} sx={{ ...hStyle, bgcolor: '#DC2626' }} align="right" title={`${wtCodeMap[wt] ? '/' + wtCodeMap[wt] + ' - ' : ''}${wt}`}>
-                  {wtCodeMap[wt] ? `/${wtCodeMap[wt]} ` : ''}{wt.length > 16 ? wt.substring(0, 14) + '...' : wt}
-                </TableCell>
-              ))}
+              {wtCols.earn.map((wt) => {
+                const code = wtCodeMap[wt];
+                const label = code ? `${code} : ${wt}` : wt;
+                return (
+                  <TableCell key={wt} sx={{ ...hStyle, bgcolor: '#059669' }} align="right" title={label}>
+                    {label.length > 20 ? label.substring(0, 18) + '...' : label}
+                  </TableCell>
+                );
+              })}
+              {wtCols.ded.map((wt) => {
+                const code = wtCodeMap[wt];
+                const label = code ? `${code} : ${wt}` : wt;
+                return (
+                  <TableCell key={wt} sx={{ ...hStyle, bgcolor: '#DC2626' }} align="right" title={label}>
+                    {label.length > 20 ? label.substring(0, 18) + '...' : label}
+                  </TableCell>
+                );
+              })}
               <TableCell sx={{ ...hStyle, bgcolor: '#92400E' }} align="right" title={`Sum of (WT × Mult) minus ${wageTypeLabel}`}>{n1} Recon{'\n'}(Calc - {wageTypeLabel})</TableCell>
               <TableCell sx={{ ...hStyle, bgcolor: '#92400E' }} align="right" title={`Sum of (WT × Mult) minus ${wageTypeLabel}`}>{n2} Recon{'\n'}(Calc - {wageTypeLabel})</TableCell>
               <TableCell sx={{ ...hStyle, bgcolor: '#92400E' }} align="right" title={`Does WT diff explain ${wageTypeLabel} diff?`}>Var Recon{'\n'}Diff</TableCell>
