@@ -94,7 +94,7 @@ export default function AddedWTTab({ data, n1, n2 }) {
           </TableHead>
           <TableBody>
             {paginatedData.map((r, i) => (
-              <TableRow key={`${r.id}-${r.wt}-${i}`} sx={{ bgcolor: '#f1f8f1', '&:hover': { bgcolor: '#e6f4ea' } }}>
+              <TableRow key={`${r.id}-${r.wt}-${i}`} sx={{ bgcolor: '#ECFDF5', '&:hover': { bgcolor: '#D1FAE5' }, transition: 'background 0.15s ease' }}>
                 <TableCell><Typography variant="body2" fontWeight={700}>{r.id}</Typography></TableCell>
                 <TableCell>{r.nm}</TableCell>
                 <TableCell><Typography variant="body2" fontWeight={600}>{r.wt}</Typography></TableCell>
@@ -130,9 +130,10 @@ export default function AddedWTTab({ data, n1, n2 }) {
 }
 
 const hStyle = {
-  bgcolor: '#1e8e3e',
+  bgcolor: '#059669',
   color: 'white',
   fontWeight: 700,
   fontSize: 12,
   whiteSpace: 'nowrap',
+  borderBottom: 'none',
 };

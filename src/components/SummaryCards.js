@@ -12,26 +12,26 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 function getCards(wageTypeLabel = '/559', wageTypeName = 'Transfer to bank') {
   return [
-    { key: 'total', label: 'Total Employees', icon: PeopleIcon, color: '#1a73e8',
+    { key: 'total', label: 'Total Employees', icon: PeopleIcon, color: '#4F46E5', gradient: 'linear-gradient(135deg, #4F46E5, #818CF8)',
       tooltip: 'Total unique employees found across both periods (active + zero pay)' },
-    { key: 'active', label: 'Active Employees', icon: PersonIcon, color: '#1a73e8',
+    { key: 'active', label: 'Active Employees', icon: PersonIcon, color: '#4F46E5', gradient: 'linear-gradient(135deg, #4F46E5, #818CF8)',
       tooltip: `Employees with non-zero ${wageTypeLabel} (${wageTypeName}) in current period` },
-    { key: 'zero', label: wageTypeLabel === '/101' ? 'Zero Gross' : 'Zero Pay', icon: WarningAmberIcon, color: '#e65100', bg: '#fff8e1',
-      tooltip: `Employees whose ${wageTypeLabel} (${wageTypeName}) is zero in current period — may be on leave, suspended, or pending adjustment` },
-    { key: 'removed', label: 'Removed WT', icon: RemoveCircleOutlineIcon, color: '#c62828', bg: '#fce8e8',
-      tooltip: 'Wage types from WT filter that existed in previous period but are missing in current period for one or more employees' },
-    { key: 'added', label: 'New WT', icon: AddCircleOutlineIcon, color: '#1e8e3e', bg: '#e6f4ea',
-      tooltip: 'Wage types from WT filter that are new in current period but were absent in previous period for one or more employees' },
-    { key: 'records', label: 'Records', icon: AssignmentIcon, color: '#1a73e8',
+    { key: 'zero', label: wageTypeLabel === '/101' ? 'Zero Gross' : 'Zero Pay', icon: WarningAmberIcon, color: '#D97706', gradient: 'linear-gradient(135deg, #D97706, #FBBF24)',
+      tooltip: `Employees whose ${wageTypeLabel} (${wageTypeName}) is zero in current period` },
+    { key: 'removed', label: 'Removed WT', icon: RemoveCircleOutlineIcon, color: '#DC2626', gradient: 'linear-gradient(135deg, #DC2626, #F87171)',
+      tooltip: 'Wage types that existed in previous period but are missing in current period' },
+    { key: 'added', label: 'New WT', icon: AddCircleOutlineIcon, color: '#059669', gradient: 'linear-gradient(135deg, #059669, #34D399)',
+      tooltip: 'Wage types that are new in current period but were absent in previous period' },
+    { key: 'records', label: 'Records', icon: AssignmentIcon, color: '#4F46E5', gradient: 'linear-gradient(135deg, #4F46E5, #818CF8)',
       tooltip: 'Total employee records processed (active + zero pay)' },
-    { key: 'disc', label: 'Discrepancies', icon: ReportProblemIcon, color: '#e65100', bg: '#fff8e1',
-      tooltip: `Count of ${wageTypeLabel} variances exceeding the threshold — these employees need review` },
-    { key: 'critical', label: 'Critical (>10%)', icon: ErrorIcon, color: '#c62828', bg: '#fce8e8',
-      tooltip: `Employees where ${wageTypeLabel} variance exceeds 10% — high priority for review` },
-    { key: 'avgVar', label: 'Avg Variance', icon: TrendingUpIcon, color: '#1a73e8',
+    { key: 'disc', label: 'Discrepancies', icon: ReportProblemIcon, color: '#D97706', gradient: 'linear-gradient(135deg, #D97706, #FBBF24)',
+      tooltip: `Count of ${wageTypeLabel} variances exceeding the threshold` },
+    { key: 'critical', label: 'Critical (>10%)', icon: ErrorIcon, color: '#DC2626', gradient: 'linear-gradient(135deg, #DC2626, #F87171)',
+      tooltip: `Employees where ${wageTypeLabel} variance exceeds 10%` },
+    { key: 'avgVar', label: 'Avg Variance', icon: TrendingUpIcon, color: '#7C3AED', gradient: 'linear-gradient(135deg, #7C3AED, #A78BFA)',
       tooltip: `Average absolute ${wageTypeLabel} variance % across all active employees` },
-    { key: 'recon', label: 'Perfect Recon', icon: CheckCircleIcon, color: '#1e8e3e', bg: '#e6f4ea',
-      tooltip: `Employees where Sum of (WT × Multiplier) matches ${wageTypeLabel} within ±1 in both periods — bifurcation fully explains ${wageTypeLabel === '/101' ? 'gross pay' : 'net pay'}` },
+    { key: 'recon', label: 'Perfect Recon', icon: CheckCircleIcon, color: '#059669', gradient: 'linear-gradient(135deg, #059669, #34D399)',
+      tooltip: `Employees where Sum of (WT x Multiplier) matches ${wageTypeLabel} within +/- 1 in both periods` },
   ];
 }
 
@@ -68,24 +68,43 @@ export default function SummaryCards({ active, zeroPay, removed, added, detailed
                 sx={{
                   p: 2,
                   textAlign: 'center',
+                  borderRadius: 3,
                   border: '1px solid',
-                  borderColor: card.bg ? card.color : 'divider',
-                  borderLeftWidth: 4,
-                  borderLeftColor: card.color,
-                  bgcolor: card.bg || 'background.paper',
-                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  borderColor: '#E2E8F0',
+                  bgcolor: 'rgba(255,255,255,0.8)',
+                  backdropFilter: 'blur(10px)',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  transition: 'all 0.3s ease',
                   cursor: 'help',
-                  '&:hover': { transform: 'translateY(-2px)', boxShadow: 2 },
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: `0 12px 24px ${card.color}18`,
+                    borderColor: card.color + '40',
+                  },
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    top: 0, left: 0, right: 0,
+                    height: 3,
+                    background: card.gradient,
+                    borderRadius: '3px 3px 0 0',
+                  },
                 }}
               >
-                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 0.5 }}>
-                  <Icon sx={{ fontSize: 20, color: card.color, opacity: 0.7 }} />
+                <Box sx={{
+                  width: 36, height: 36, mx: 'auto', mb: 1,
+                  borderRadius: 2,
+                  background: card.color + '10',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Icon sx={{ fontSize: 20, color: card.color }} />
                 </Box>
                 <Typography
                   variant="caption"
                   color="text.secondary"
                   fontWeight={700}
-                  sx={{ textTransform: 'uppercase', letterSpacing: 0.5, fontSize: '0.65rem' }}
+                  sx={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.6rem', display: 'block' }}
                 >
                   {card.label}
                 </Typography>

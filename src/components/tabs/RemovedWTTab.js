@@ -94,7 +94,7 @@ export default function RemovedWTTab({ data, n1, n2 }) {
           </TableHead>
           <TableBody>
             {paginatedData.map((r, i) => (
-              <TableRow key={`${r.id}-${r.wt}-${i}`} sx={{ bgcolor: '#fff5f5', '&:hover': { bgcolor: '#fce8e8' } }}>
+              <TableRow key={`${r.id}-${r.wt}-${i}`} sx={{ bgcolor: '#FEF2F2', '&:hover': { bgcolor: '#FEE2E2' }, transition: 'background 0.15s ease' }}>
                 <TableCell><Typography variant="body2" fontWeight={700}>{r.id}</Typography></TableCell>
                 <TableCell>{r.nm}</TableCell>
                 <TableCell><Typography variant="body2" fontWeight={600}>{r.wt}</Typography></TableCell>
@@ -130,9 +130,10 @@ export default function RemovedWTTab({ data, n1, n2 }) {
 }
 
 const hStyle = {
-  bgcolor: '#c62828',
+  bgcolor: '#DC2626',
   color: 'white',
   fontWeight: 700,
   fontSize: 12,
   whiteSpace: 'nowrap',
+  borderBottom: 'none',
 };

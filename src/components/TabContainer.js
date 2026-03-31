@@ -27,7 +27,7 @@ export default function TabContainer({ results, wtCols, n1, n2, wageTypeLabel = 
   return (
     <Box>
       {/* Summary comment about overall analysis */}
-      <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
+      <Alert severity="info" sx={{ mb: 2, borderRadius: 3, border: '1px solid #C7D2FE' }}>
         <Typography variant="body2" component="div">
           <strong>Analysis Summary ({n1} vs {n2}):</strong>{' '}
           Compared {wageTypeLabel} ({wageTypeName}) for <strong>{activeData.length + zeroData.length}</strong> employees.{' '}
@@ -43,36 +43,54 @@ export default function TabContainer({ results, wtCols, n1, n2, wageTypeLabel = 
       </Alert>
 
       {zeroData.length > 0 && (
-        <Alert severity="warning" sx={{ mb: 1.5, borderRadius: 2 }}>
+        <Alert severity="warning" sx={{ mb: 1.5, borderRadius: 3 }}>
           <strong>{zeroData.length} employee(s)</strong> have {wageTypeLabel} = 0 in {n1}.
           {wageTypeLabel === '/559'
-            ? ' These employees received no bank transfer in the current period — possible leave, suspension, or pending adjustment.'
-            : ' These employees have zero gross amount in the current period — verify with HR/Payroll.'}
+            ? ' These employees received no bank transfer in the current period.'
+            : ' These employees have zero gross amount in the current period.'}
         </Alert>
       )}
       {results.removed.length > 0 && (
-        <Alert severity="error" sx={{ mb: 1.5, borderRadius: 2 }}>
+        <Alert severity="error" sx={{ mb: 1.5, borderRadius: 3 }}>
           <strong>{results.removed.length} wage type instance(s)</strong> from the WT filter were present in {n2} but missing in {n1}.
-          This may reduce the accuracy of the bifurcation. Check if these are intentional payroll structure changes.
         </Alert>
       )}
       {results.added.length > 0 && (
-        <Alert severity="success" sx={{ mb: 1.5, borderRadius: 2 }}>
+        <Alert severity="success" sx={{ mb: 1.5, borderRadius: 3 }}>
           <strong>{results.added.length} wage type instance(s)</strong> from the WT filter are new in {n1} (absent in {n2}).
-          These could be new benefits, bonuses, corrections, or structural changes.
         </Alert>
       )}
 
-      <Paper elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
+      <Paper
+        elevation={0}
+        sx={{
+          borderRadius: 3,
+          border: '1px solid',
+          borderColor: '#E2E8F0',
+          overflow: 'hidden',
+          bgcolor: 'rgba(255,255,255,0.9)',
+          backdropFilter: 'blur(10px)',
+        }}
+      >
         <Tabs
           value={tab}
           onChange={(_, v) => setTab(v)}
           variant="scrollable"
           scrollButtons="auto"
           sx={{
-            borderBottom: '1px solid',
-            borderColor: 'divider',
-            '& .MuiTab-root': { fontWeight: 600, textTransform: 'none', minHeight: 56 },
+            bgcolor: '#F8FAFC',
+            borderBottom: '1px solid #E2E8F0',
+            '& .MuiTab-root': {
+              fontWeight: 600, textTransform: 'none', minHeight: 52,
+              color: '#64748B',
+              transition: 'all 0.2s ease',
+              '&.Mui-selected': { color: '#4F46E5' },
+            },
+            '& .MuiTabs-indicator': {
+              height: 3,
+              borderRadius: '3px 3px 0 0',
+              background: 'linear-gradient(90deg, #4F46E5, #7C3AED)',
+            },
           }}
         >
           <Tab

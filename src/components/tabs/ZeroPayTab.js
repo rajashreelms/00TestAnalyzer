@@ -72,7 +72,7 @@ export default function ZeroPayTab({ data, n1, n2, wageTypeLabel = '/559', wageT
           </TableHead>
           <TableBody>
             {paginatedData.map((r) => (
-              <TableRow key={r.id} sx={{ bgcolor: '#fffde7', '&:hover': { bgcolor: '#fff8e1' } }}>
+              <TableRow key={r.id} sx={{ bgcolor: '#FFFBEB', '&:hover': { bgcolor: '#FEF3C7' }, transition: 'background 0.15s ease' }}>
                 <TableCell><Typography variant="body2" fontWeight={700}>{r.id}</Typography></TableCell>
                 <TableCell>{r.nm}</TableCell>
                 <TableCell align="right">{fmt(r.p2net)}</TableCell>
@@ -103,9 +103,10 @@ export default function ZeroPayTab({ data, n1, n2, wageTypeLabel = '/559', wageT
 }
 
 const hStyle = {
-  bgcolor: '#e65100',
+  bgcolor: '#D97706',
   color: 'white',
   fontWeight: 700,
   fontSize: 12,
   whiteSpace: 'nowrap',
+  borderBottom: 'none',
 };

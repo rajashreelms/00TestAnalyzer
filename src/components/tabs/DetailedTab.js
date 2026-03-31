@@ -179,9 +179,10 @@ export default function DetailedTab({ data, n1, n2 }) {
                   onClick={() => toggleExpand(id)}
                   sx={{
                     cursor: 'pointer',
-                    bgcolor: hasDisc ? '#fff3e0' : '#f5f5f5',
-                    '&:hover': { bgcolor: hasDisc ? '#ffe0b2' : '#eeeeee' },
-                    borderLeft: hasDisc ? '4px solid #ff9800' : '4px solid #1a73e8',
+                    bgcolor: hasDisc ? '#FFFBEB' : '#F8FAFC',
+                    '&:hover': { bgcolor: hasDisc ? '#FEF3C7' : '#F1F5F9' },
+                    borderLeft: hasDisc ? '4px solid #D97706' : '4px solid #4F46E5',
+                    transition: 'background 0.15s ease',
                   }}
                 >
                   <TableCell sx={{ py: 0.5 }}>
@@ -244,8 +245,9 @@ export default function DetailedTab({ data, n1, n2 }) {
                             <TableRow
                               key={`${r.id}-${r.wt}-${i}`}
                               sx={{
-                                bgcolor: r.st === 'Discrepancy' ? '#fff8e1' : '#fafafa',
-                                '&:hover': { bgcolor: r.st === 'Discrepancy' ? '#fff3e0' : '#f5f5f5' },
+                                bgcolor: r.st === 'Discrepancy' ? '#FFFBEB' : '#FAFAFA',
+                                '&:hover': { bgcolor: r.st === 'Discrepancy' ? '#FEF3C7' : '#F1F5F9' },
+                                transition: 'background 0.15s ease',
                               }}
                             >
                               <TableCell sx={{ width: 40 }} />
@@ -314,9 +316,10 @@ export default function DetailedTab({ data, n1, n2 }) {
 }
 
 const hStyle = {
-  bgcolor: '#1a73e8',
+  bgcolor: '#4F46E5',
   color: 'white',
   fontWeight: 700,
   fontSize: 12,
   whiteSpace: 'nowrap',
+  borderBottom: 'none',
 };

@@ -1,50 +1,126 @@
 import { useState, useCallback } from 'react';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
-import { Box, CircularProgress, Typography, Container, Snackbar, Alert, ToggleButtonGroup, ToggleButton } from '@mui/material';
+import { Box, CircularProgress, Typography, Container, Snackbar, Alert, ToggleButtonGroup, ToggleButton, Fab, Tooltip } from '@mui/material';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import AccountBalanceIcon from '@mui/icons-material/AccountBalance';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import Header from './components/Header';
 import UploadSection from './components/UploadSection';
 import Controls from './components/Controls';
 import SummaryCards from './components/SummaryCards';
 import TabContainer from './components/TabContainer';
 import Footer from './components/Footer';
+import UserGuide from './components/UserGuide';
 import { parseExcel, parseFilterFile, exportToExcel } from './utils/payrollEngine';
 import { runAnalysisInWorker } from './utils/analysisWorker';
 
+/* ─── Figma-Style Design Tokens ──────────────────────────────────────────── */
 const theme = createTheme({
   palette: {
-    primary: { main: '#1a73e8' },
-    secondary: { main: '#5f6368' },
-    success: { main: '#1e8e3e' },
-    warning: { main: '#f9ab00' },
-    error: { main: '#d93025' },
-    background: { default: '#f0f4f9', paper: '#ffffff' },
+    primary: { main: '#4F46E5', light: '#818CF8', dark: '#3730A3' },
+    secondary: { main: '#64748B', light: '#94A3B8', dark: '#475569' },
+    success: { main: '#059669', light: '#34D399', dark: '#047857' },
+    warning: { main: '#D97706', light: '#FBBF24', dark: '#B45309' },
+    error: { main: '#DC2626', light: '#F87171', dark: '#B91C1C' },
+    background: { default: '#F8FAFC', paper: '#FFFFFF' },
+    text: { primary: '#1E293B', secondary: '#64748B', disabled: '#94A3B8' },
+    divider: '#E2E8F0',
   },
   typography: {
-    fontFamily: '"Google Sans", "Inter", "Roboto", "Helvetica Neue", Arial, sans-serif',
-    h4: { fontWeight: 600, letterSpacing: '-0.5px' },
-    h6: { fontWeight: 600 },
+    fontFamily: '"Inter", "SF Pro Display", "Segoe UI", "Roboto", sans-serif',
+    h4: { fontWeight: 700, letterSpacing: '-0.02em', lineHeight: 1.2 },
+    h5: { fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1.3 },
+    h6: { fontWeight: 600, letterSpacing: '-0.01em' },
+    subtitle1: { fontWeight: 600, letterSpacing: '-0.005em' },
+    subtitle2: { fontWeight: 600, fontSize: '0.8125rem' },
+    body2: { fontSize: '0.8125rem', lineHeight: 1.5 },
+    caption: { fontSize: '0.6875rem', letterSpacing: '0.02em' },
   },
   shape: { borderRadius: 12 },
+  shadows: [
+    'none',
+    '0 1px 2px 0 rgba(0,0,0,0.05)',
+    '0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1)',
+    '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)',
+    '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)',
+    '0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)',
+    ...Array(19).fill('0 25px 50px -12px rgba(0,0,0,0.25)'),
+  ],
   components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        body: {
+          scrollbarWidth: 'thin',
+          scrollbarColor: '#CBD5E1 transparent',
+          '&::-webkit-scrollbar': { width: 6 },
+          '&::-webkit-scrollbar-thumb': { borderRadius: 3, background: '#CBD5E1' },
+        },
+      },
+    },
     MuiPaper: {
       styleOverrides: {
-        root: { backgroundImage: 'none' },
+        root: { backgroundImage: 'none', borderRadius: 16 },
       },
     },
     MuiButton: {
       styleOverrides: {
-        root: { textTransform: 'none', fontWeight: 600, borderRadius: 8 },
+        root: {
+          textTransform: 'none',
+          fontWeight: 600,
+          borderRadius: 10,
+          boxShadow: 'none',
+          '&:hover': { boxShadow: 'none' },
+        },
+        contained: {
+          boxShadow: '0 1px 3px 0 rgba(0,0,0,0.1), 0 1px 2px -1px rgba(0,0,0,0.1)',
+          '&:hover': { boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)' },
+        },
       },
     },
     MuiChip: {
       styleOverrides: {
-        root: { fontWeight: 600 },
+        root: { fontWeight: 600, borderRadius: 8 },
+      },
+    },
+    MuiAlert: {
+      styleOverrides: {
+        root: { borderRadius: 12 },
+        standardInfo: { backgroundColor: '#EEF2FF', color: '#3730A3', '& .MuiAlert-icon': { color: '#4F46E5' } },
+        standardWarning: { backgroundColor: '#FFFBEB', color: '#92400E', '& .MuiAlert-icon': { color: '#D97706' } },
+        standardError: { backgroundColor: '#FEF2F2', color: '#991B1B', '& .MuiAlert-icon': { color: '#DC2626' } },
+        standardSuccess: { backgroundColor: '#ECFDF5', color: '#065F46', '& .MuiAlert-icon': { color: '#059669' } },
+      },
+    },
+    MuiTableCell: {
+      styleOverrides: {
+        root: { borderColor: '#F1F5F9' },
+      },
+    },
+    MuiToggleButton: {
+      styleOverrides: {
+        root: { borderRadius: '10px !important', borderColor: '#E2E8F0' },
+      },
+    },
+    MuiTextField: {
+      styleOverrides: {
+        root: { '& .MuiOutlinedInput-root': { borderRadius: 10 } },
+      },
+    },
+    MuiTab: {
+      styleOverrides: {
+        root: { textTransform: 'none', fontWeight: 600, minHeight: 52 },
       },
     },
   },
 });
+
+/* ─── Glass effect helper ──────────────────────────────────────────────── */
+export const glassStyle = {
+  background: 'rgba(255, 255, 255, 0.7)',
+  backdropFilter: 'blur(20px)',
+  WebkitBackdropFilter: 'blur(20px)',
+  border: '1px solid rgba(255, 255, 255, 0.3)',
+};
 
 export default function App() {
   const [p1Name, setP1Name] = useState('Jan 2026');
@@ -60,6 +136,7 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [exportLoading, setExportLoading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+  const [guideOpen, setGuideOpen] = useState(false);
 
   const [status1, setStatus1] = useState(null);
   const [status2, setStatus2] = useState(null);
@@ -163,9 +240,14 @@ export default function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ bgcolor: 'background.default', minHeight: '100vh', py: 3 }}>
-        <Container maxWidth={false} sx={{ maxWidth: 2400 }}>
-          <Header />
+      <Box sx={{
+        bgcolor: 'background.default',
+        minHeight: '100vh',
+        py: { xs: 2, md: 4 },
+        background: 'linear-gradient(180deg, #F8FAFC 0%, #EEF2FF 50%, #F8FAFC 100%)',
+      }}>
+        <Container maxWidth={false} sx={{ maxWidth: 2400, px: { xs: 2, md: 4 } }}>
+          <Header onOpenGuide={() => setGuideOpen(true)} />
 
           <UploadSection
             p1Name={p1Name} setP1Name={setP1Name}
@@ -189,10 +271,21 @@ export default function App() {
           />
 
           {loading && (
-            <Box sx={{ textAlign: 'center', py: 10 }}>
-              <CircularProgress size={48} sx={{ mb: 2 }} />
-              <Typography variant="h6" color="text.secondary">Processing payroll data...</Typography>
-              <Typography variant="body2" color="text.disabled">Analyzing wage type changes</Typography>
+            <Box sx={{
+              textAlign: 'center', py: 10,
+              ...glassStyle,
+              borderRadius: 4, mx: 'auto', maxWidth: 480, my: 4,
+            }}>
+              <Box sx={{
+                width: 64, height: 64, mx: 'auto', mb: 3,
+                borderRadius: '50%',
+                background: 'linear-gradient(135deg, #4F46E5, #7C3AED)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <CircularProgress size={32} sx={{ color: 'white' }} />
+              </Box>
+              <Typography variant="h6" sx={{ color: 'text.primary', mb: 0.5 }}>Processing payroll data...</Typography>
+              <Typography variant="body2" color="text.secondary">Analyzing wage type changes across periods</Typography>
             </Box>
           )}
 
@@ -204,9 +297,20 @@ export default function App() {
                   exclusive
                   onChange={(_, v) => { if (v) setAnalysisMode(v); }}
                   sx={{
+                    ...glassStyle,
+                    borderRadius: '14px',
+                    p: 0.5,
                     '& .MuiToggleButton-root': {
-                      fontWeight: 700, textTransform: 'none', px: 3, py: 1.2,
-                      '&.Mui-selected': { bgcolor: 'primary.main', color: 'white', '&:hover': { bgcolor: 'primary.dark' } },
+                      fontWeight: 700, textTransform: 'none', px: 3.5, py: 1,
+                      border: 'none', borderRadius: '10px !important',
+                      color: 'text.secondary',
+                      transition: 'all 0.2s ease',
+                      '&.Mui-selected': {
+                        background: 'linear-gradient(135deg, #4F46E5, #7C3AED)',
+                        color: 'white',
+                        boxShadow: '0 4px 12px rgba(79,70,229,0.3)',
+                        '&:hover': { background: 'linear-gradient(135deg, #4338CA, #6D28D9)' },
+                      },
                     },
                   }}
                 >
@@ -244,6 +348,30 @@ export default function App() {
         </Container>
       </Box>
 
+      {/* Floating Help Button */}
+      <Tooltip title="User Guide" arrow placement="left">
+        <Fab
+          size="medium"
+          onClick={() => setGuideOpen(true)}
+          sx={{
+            position: 'fixed', bottom: 24, right: 24,
+            background: 'linear-gradient(135deg, #4F46E5, #7C3AED)',
+            color: 'white',
+            boxShadow: '0 8px 24px rgba(79,70,229,0.4)',
+            '&:hover': {
+              background: 'linear-gradient(135deg, #4338CA, #6D28D9)',
+              transform: 'scale(1.05)',
+            },
+            transition: 'all 0.2s ease',
+          }}
+        >
+          <HelpOutlineIcon />
+        </Fab>
+      </Tooltip>
+
+      {/* User Guide Drawer */}
+      <UserGuide open={guideOpen} onClose={() => setGuideOpen(false)} />
+
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}
@@ -254,7 +382,7 @@ export default function App() {
           onClose={() => setSnackbar({ ...snackbar, open: false })}
           severity={snackbar.severity}
           variant="filled"
-          sx={{ width: '100%' }}
+          sx={{ width: '100%', borderRadius: 3 }}
         >
           {snackbar.message}
         </Alert>

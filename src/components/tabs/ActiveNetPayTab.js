@@ -171,18 +171,18 @@ export default function ActiveNetPayTab({ data, wtCols, n1, n2, wageTypeLabel = 
               <TableCell sx={hStyle} align="right">{wageTypeLabel}{'\n'}Variance</TableCell>
               <TableCell sx={hStyle} align="right">Var %</TableCell>
               {wtCols.earn.map((wt) => (
-                <TableCell key={wt} sx={{ ...hStyle, bgcolor: '#1e8e3e' }} align="right" title={wt}>
+                <TableCell key={wt} sx={{ ...hStyle, bgcolor: '#059669' }} align="right" title={wt}>
                   {wt.length > 16 ? wt.substring(0, 14) + '...' : wt}
                 </TableCell>
               ))}
               {wtCols.ded.map((wt) => (
-                <TableCell key={wt} sx={{ ...hStyle, bgcolor: '#c62828' }} align="right" title={wt}>
+                <TableCell key={wt} sx={{ ...hStyle, bgcolor: '#DC2626' }} align="right" title={wt}>
                   {wt.length > 16 ? wt.substring(0, 14) + '...' : wt}
                 </TableCell>
               ))}
-              <TableCell sx={{ ...hStyle, bgcolor: '#6d4c00' }} align="right" title={`Sum of (WT × Mult) minus ${wageTypeLabel}`}>{n1} Recon{'\n'}(Calc - {wageTypeLabel})</TableCell>
-              <TableCell sx={{ ...hStyle, bgcolor: '#6d4c00' }} align="right" title={`Sum of (WT × Mult) minus ${wageTypeLabel}`}>{n2} Recon{'\n'}(Calc - {wageTypeLabel})</TableCell>
-              <TableCell sx={{ ...hStyle, bgcolor: '#6d4c00' }} align="right" title={`Does WT diff explain ${wageTypeLabel} diff?`}>Var Recon{'\n'}Diff</TableCell>
+              <TableCell sx={{ ...hStyle, bgcolor: '#92400E' }} align="right" title={`Sum of (WT × Mult) minus ${wageTypeLabel}`}>{n1} Recon{'\n'}(Calc - {wageTypeLabel})</TableCell>
+              <TableCell sx={{ ...hStyle, bgcolor: '#92400E' }} align="right" title={`Sum of (WT × Mult) minus ${wageTypeLabel}`}>{n2} Recon{'\n'}(Calc - {wageTypeLabel})</TableCell>
+              <TableCell sx={{ ...hStyle, bgcolor: '#92400E' }} align="right" title={`Does WT diff explain ${wageTypeLabel} diff?`}>Var Recon{'\n'}Diff</TableCell>
               <TableCell sx={{ ...hStyle, minWidth: 340 }}>WT Bifurcation{'\n'}(Current Period)</TableCell>
               <TableCell sx={hStyle} align="center">Status</TableCell>
             </TableRow>
@@ -263,10 +263,11 @@ export default function ActiveNetPayTab({ data, wtCols, n1, n2, wageTypeLabel = 
 }
 
 const hStyle = {
-  bgcolor: '#1a73e8',
+  bgcolor: '#4F46E5',
   color: 'white',
   fontWeight: 700,
   fontSize: 11,
   whiteSpace: 'nowrap',
   py: 1.5,
+  borderBottom: 'none',
 };
